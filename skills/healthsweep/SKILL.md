@@ -95,7 +95,9 @@ Run `HS preflight --repo <path> [--base <branch>] [--config <file>]`.
   branch: `git -C <repo> switch -c healthsweep/<runDir basename>`. Tell the user that `startSha` plus
   this branch is the recovery point.
 
-Baseline (Tier 1): `HS checks --run <runDir> --label baseline`. Show each check's exit code, pass and
+Baseline (Tier 1): `HS checks --run <runDir> --label baseline`. If `dirtiedByChecks` is not empty, the
+checks write into the repository (snapshots, build output): STOP, tell the user which files, and ask
+them to fix the check or ignore those files before going on, so a fix never mixes with check output. Show each check's exit code, pass and
 fail counts and duration. Failing checks here are pre-existing: record them, do not fix them unless
 asked, and judge every later run against this baseline. If `inProgress.stat` is present, that diff
 gets a security review in Tier 2.

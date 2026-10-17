@@ -1,5 +1,8 @@
 // Merge findings from every tier into one deduplicated, ranked list.
 
+import { redactSecrets } from './redact.mjs';
+import { isSafeRelPath } from './md.mjs';
+
 export const SEVERITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 export const CATEGORIES = ['bug', 'security', 'latency', 'maintainability'];
 const RANK = Object.fromEntries(SEVERITIES.map((s, i) => [s, i]));
@@ -17,12 +20,14 @@ export function normalizeFinding(raw) {
   if (!SEVERITIES.includes(severity)) throw new Error(`invalid severity "${raw.severity}" for ${file}`);
   if (!CATEGORIES.includes(category)) throw new Error(`invalid category "${raw.category}" for ${file}`);
   if (!file) throw new Error('finding has no file');
+  if (!isSafeRelPath(file)) throw new Error(`finding path must be repository-relative: ${file}`);
   if (!evidence) throw new Error(`finding at ${file}:${raw.line} has no evidence`);
   const line = Number.isInteger(raw.line) ? raw.line : Number.parseInt(raw.line, 10) || 0;
   return {
-    file, line, category, severity, evidence,
-    title: String(raw.title ?? '').trim() || '(untitled)',
-    rationale: String(raw.rationale ?? '').trim(),
+    file, line, category, severity, evidence: redactSecrets(evidence),
+    title: redactSecrets(String(raw.title ?? '').trim()) || '(untitled)',
+    rationale: redactSecrets(String(raw.rationale ?? '').trim()),
+    trigger: raw.trigger ? redactSecrets(String(raw.trigger)) : null,
     confidence: raw.confidence ? String(raw.confidence).toUpperCase() : null,
     cwe: raw.cwe ?? null,
     externalId: raw.externalId ?? null,

@@ -88,3 +88,15 @@ test('fromClaudeSecurity falls back to snippet when evidence is missing', () => 
   const n = fromClaudeSecurity({ file: 'a', line: 1, severity: 'LOW', title: 't', snippet: 'x()' });
   assert.equal(n.evidence, 'x()');
 });
+
+test('normalizeFinding rejects absolute paths and parent-directory escapes', () => {
+  assert.throws(() => normalizeFinding(f({ file: '/etc/passwd' })), /path/);
+  assert.throws(() => normalizeFinding(f({ file: '../../.ssh/id_rsa' })), /path/);
+  assert.throws(() => normalizeFinding(f({ file: 'src/../../x' })), /path/);
+  assert.equal(normalizeFinding(f({ file: 'src/a..b.ts' })).file, 'src/a..b.ts');
+});
+
+test('normalizeFinding redacts secrets in evidence, rationale and title', () => {
+  const n = normalizeFinding(f({ title: 'key AKIAIOSFODNN7EXAMPLE committed', evidence: 'const k = "AKIAIOSFODNN7EXAMPLE";', rationale: 'password = hunter2hunter2' }));
+  for (const v of [n.title, n.evidence, n.rationale]) assert.ok(!/AKIAIOSFODNN7EXAMPLE|hunter2hunter2/.test(v), v);
+});

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, existsSync, symlinkSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -86,6 +86,7 @@ test('full happy path: preflight, baseline, consolidate, scoped checks, compare,
   const md = readFileSync(join(repo, 'HEALTHSWEEP_LOG.md'), 'utf8');
   assert.match(md, /# HEALTHSWEEP_LOG/);
   assert.match(md, /HS-001 · HIGH · bug · off by one/);
+  assert.equal(statSync(join(repo, 'HEALTHSWEEP_LOG.md')).mode & 0o777, 0o644);
 });
 
 test('init without a config suggests checks and ground truth', () => {
@@ -186,4 +187,47 @@ test('checks refuse a run whose config changed after it was trusted', () => {
   const c = run('checks', '--run', runDir);
   assert.equal(c.json.ok, false);
   assert.match(c.json.error, /not trusted/);
+});
+
+test('log refuses to write through a symlinked HEALTHSWEEP_LOG.md', () => {
+  const { repo, run, g, root } = setup();
+  const target = join(root, 'victim-rc');
+  writeFileSync(target, 'original\n');
+  symlinkSync(target, join(repo, 'HEALTHSWEEP_LOG.md'));
+  g('add', '.'); g('commit', '-qm', 'link');
+  const runDir = run('preflight', '--repo', repo, '--stamp', 'sym').json.runDir;
+  const entry = join(runDir, 'e.json');
+  writeFileSync(entry, JSON.stringify({ finding: { id: 'HS-001', title: 't', severity: 'LOW', category: 'bug', file: 'a', line: 1, evidence: 'e' }, verification: 'v', diff: 'd', testsBefore: 'b', testsAfter: 'a' }));
+  const r = run('log', '--run', runDir, '--entry', entry);
+  assert.equal(r.json.ok, false);
+  assert.match(r.json.error, /symlink/);
+  assert.equal(readFileSync(target, 'utf8'), 'original\n');
+});
+
+test('bad --stamp, --files and --ids values are refused', () => {
+  const { repo, run } = setup();
+  assert.equal(run('preflight', '--repo', repo, '--stamp', '../../x').json.ok, false);
+  const runDir = run('preflight', '--repo', repo, '--stamp', 'val').json.runDir;
+  const c = run('checks', '--run', runDir, '--label', 'x', '--files', '../outside.js');
+  assert.equal(c.json.ok, false);
+  assert.match(c.json.error, /path/);
+  const lbl = run('checks', '--run', runDir, '--label', '../evil');
+  assert.equal(lbl.json.ok, false);
+});
+
+test('run artefacts are private to the user', () => {
+  const { repo, run } = setup();
+  const runDir = run('preflight', '--repo', repo, '--stamp', 'perm').json.runDir;
+  assert.equal(statSync(runDir).mode & 0o077, 0);
+  assert.equal(statSync(join(runDir, 'run.json')).mode & 0o077, 0);
+});
+
+test('checks report files a check command modified in the repository', () => {
+  const { repo, run, g } = setup();
+  writeFileSync(join(repo, '.healthsweep.json'), JSON.stringify({ groundTruth: ['README.md'], checks: [{ name: 'snap', kind: 'test', cmd: 'echo changed >> README.md' }] }));
+  g('add', '.'); g('commit', '-qm', 'cfg');
+  run('trust', '--repo', repo);
+  const runDir = run('preflight', '--repo', repo, '--stamp', 'dirt').json.runDir;
+  const c = run('checks', '--run', runDir);
+  assert.deepEqual(c.json.dirtiedByChecks, ['README.md']);
 });

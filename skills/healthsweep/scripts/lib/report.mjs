@@ -1,6 +1,8 @@
 // Render REPORT.md for a run. Deterministic: every number comes from the run files.
 
 import { SEVERITIES, CATEGORIES } from './consolidate.mjs';
+import { mdInline, mdCode } from './md.mjs';
+import { redactSecrets } from './redact.mjs';
 
 const dash = (v) => (v === null || v === undefined ? '—' : String(v));
 const NEAR_LINES = 20;
@@ -71,18 +73,18 @@ export function renderReport({ run, baseline, findingsDoc, verify, tier3, tokens
   for (const f of findings) {
     const v = verdicts.get(f.id);
     const status = v ? v.recommendation : 'unverified';
-    out.push(`| ${f.id} | ${f.severity} | ${f.category} | \`${f.file}:${f.line}\` | ${oneLine(f.title, 140).replace(/\|/g, '\\|')} | ${status} |`);
+    out.push(`| ${f.id} | ${f.severity} | ${f.category} | \`${mdCode(f.file)}:${f.line}\` | ${mdInline(f.title, 140)} | ${status} |`);
   }
   out.push('');
 
   out.push('## Details', '');
   for (const f of findings) {
-    out.push(`### ${f.id} · ${f.severity} · ${f.category} · ${oneLine(f.title, 200)}`, '');
-    out.push(`- Where: \`${f.file}:${f.line}\``);
+    out.push(`### ${f.id} · ${f.severity} · ${f.category} · ${mdInline(f.title, 200)}`, '');
+    out.push(`- Where: \`${mdCode(f.file)}:${f.line}\``);
     out.push(`- Reported by: ${(f.sources ?? []).join(', ')}${f.confidence ? ` (finder confidence ${f.confidence})` : ''}`);
     if (f.rationale) out.push(`- Why: ${oneLine(f.rationale, 1200)}`);
     if (f.trigger) out.push(`- Trigger: ${oneLine(f.trigger, 600)}`);
-    out.push('', '```', String(f.evidence).replace(/```/g, '`​``').slice(0, 2500), '```', '');
+    out.push('', '```', redactSecrets(String(f.evidence)).replace(/```/g, '`​``').slice(0, 2500), '```', '');
   }
 
   out.push('---', '');

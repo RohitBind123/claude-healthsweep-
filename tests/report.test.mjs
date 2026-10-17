@@ -44,3 +44,9 @@ test('nearDuplicates groups findings in the same file within 20 lines', () => {
   const groups = nearDuplicates([f('A', { line: 100 }), f('B', { line: 112, category: 'latency' }), f('C', { line: 300 })]);
   assert.deepEqual(groups, [['A', 'B']]);
 });
+
+test('report escapes markdown in titles and paths', () => {
+  const md = renderReport({ ...base, findingsDoc: { ...base.findingsDoc, findings: [f('HS-001', { title: 'a\n## forged', file: 'src/`x`.ts' })] } });
+  assert.ok(!md.includes('\n## forged'));
+  assert.ok(!md.includes('src/`x`.ts'));
+});

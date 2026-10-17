@@ -1,4 +1,8 @@
 // Render one HEALTHSWEEP_LOG.md entry. Evidence only: real diff, real test output.
+// Everything is secret-redacted: this file is committed.
+
+import { redactSecrets } from './redact.mjs';
+import { mdInline, mdCode } from './md.mjs';
 
 export const LOG_HEADER = `# HEALTHSWEEP_LOG
 
@@ -9,7 +13,7 @@ file always agree. This log raises confidence; it is not a proof that nothing br
 `;
 
 function fence(text, lang = '') {
-  const body = String(text ?? '').replace(/```/g, '`​``');
+  const body = redactSecrets(String(text ?? '')).replace(/```/g, '`​``');
   return `\`\`\`${lang}\n${body.replace(/\n$/, '')}\n\`\`\``;
 }
 
@@ -25,16 +29,16 @@ export function renderLogEntry(entry) {
     ? `**Benchmark** (\`${entry.bench.command}\`): before ${entry.bench.before}, after ${entry.bench.after}.`
     : '**Benchmark:** No benchmark run. No performance claim is made for this change.';
   return [
-    `## ${entry.date} · ${f.id} · ${f.severity} · ${f.category} · ${f.title}`,
+    `## ${entry.date} · ${f.id} · ${f.severity} · ${f.category} · ${mdInline(redactSecrets(f.title), 200)}`,
     '',
-    `**Where:** \`${f.file}:${f.line}\`  `,
+    `**Where:** \`${mdCode(f.file)}:${f.line}\`  `,
     `**Approved by:** ${entry.approvedBy ?? 'user'}${entry.commit ? `  \n**Commit:** \`${entry.commit}\`` : ''}`,
     '',
     '**Finding evidence (before):**',
     '',
     fence(f.evidence),
     '',
-    `**Independent verification:** ${entry.verification}`,
+    `**Independent verification:** ${redactSecrets(String(entry.verification).replace(/[\r\n]+/g, ' '))}`,
     '',
     '**Change (before -> after):**',
     '',

@@ -15,6 +15,8 @@ import { consolidate, countBySeverity, fromClaudeSecurity, normalizeFinding } fr
 import { aboveThreshold, estimateReviewCost, DEFAULT_COST_MODEL } from './lib/cost.mjs';
 import { renderLogEntry, LOG_HEADER } from './lib/logentry.mjs';
 import { renderReport } from './lib/report.mjs';
+import { isSafeRelPath } from './lib/md.mjs';
+import { closeSync, constants as FS, fchmodSync, lstatSync, openSync, realpathSync, writeSync } from 'node:fs';
 import { loadPrompts, loadSchemas } from './lib/prompts.mjs';
 import { renderPrompt } from './lib/shared.mjs';
 import { AGENT_PRESETS, resolveAgent } from './lib/agents.mjs';
@@ -46,6 +48,29 @@ const out = (obj) => process.stdout.write(`${JSON.stringify(obj, null, 2)}\n`);
 const err = (msg) => process.stderr.write(`${msg}\n`);
 const git = (repo, args) => execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim();
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
+
+const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/;
+function safeName(kind, v) {
+  if (!NAME.test(String(v))) throw new Error(`invalid ${kind} ${JSON.stringify(v)} (letters, digits, . _ - only)`);
+  return String(v);
+}
+
+function splitList(v) {
+  if (v === undefined || v === true) return null;
+  return String(v).split(',').map((x) => x.trim()).filter(Boolean);
+}
+
+// Files changed in the working tree (porcelain -z, untracked included).
+function dirtyPaths(repo) {
+  const raw = execFileSync('git', ['-C', repo, 'status', '--porcelain', '-z', '--untracked-files=all'], { encoding: 'utf8' });
+  const parts = raw.split('\0').filter(Boolean);
+  const files = [];
+  for (let i = 0; i < parts.length; i += 1) {
+    files.push(parts[i].slice(3));
+    if (/[RC]/.test(parts[i].slice(0, 2))) i += 1;
+  }
+  return files;
+}
 
 function stamp() {
   return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -109,7 +134,7 @@ function cmdPreflight(f) {
   if (dirty) {
     return out({ ok: false, reason: 'dirty-tree', repoRoot, branch, dirty: dirty.split('\n') });
   }
-  const runDir = join(homedir(), '.claude', 'healthsweep', 'runs', basename(repoRoot), f.stamp ?? stamp());
+  const runDir = join(homedir(), '.claude', 'healthsweep', 'runs', basename(repoRoot), f.stamp ? safeName('stamp', f.stamp) : stamp());
   mkdirSync(runDir, { recursive: true });
   const base = f.base ?? null;
   let inProgress = null;
@@ -125,8 +150,12 @@ function cmdPreflight(f) {
 async function cmdChecks(f) {
   const run = loadRun(f.run);
   requireTrusted(run);
-  const label = f.label ?? 'baseline';
-  const changed = f.files ? String(f.files).split(',').filter(Boolean) : null;
+  const label = safeName('label', f.label ?? 'baseline');
+  const changed = splitList(f.files);
+  const badPath = (changed ?? []).find((p) => !isSafeRelPath(p));
+  if (badPath) throw new Error(`--files path must be repository-relative: ${badPath}`);
+  if (f.files === true) throw new Error('--files needs a comma-separated list');
+  const dirtyBefore = new Set(dirtyPaths(run.repoRoot));
   const checks = changed
     ? selectScopedChecks(run.config.checks, changed, { includeBench: Boolean(f['include-bench']) })
     : run.config.checks.filter((c) => c.kind !== 'bench' || f['include-bench']);
@@ -141,7 +170,9 @@ async function cmdChecks(f) {
   const result = { label, scopedTo: changed, sha: git(run.repoRoot, ['rev-parse', 'HEAD']), ...res };
   writeFileSync(join(run.runDir, `checks-${label}.json`), JSON.stringify(result, null, 2));
   const summary = res.checks.map(({ tail, logFile, ...c }) => c);
-  return out({ ok: true, label, file: join(run.runDir, `checks-${label}.json`), checks: summary });
+  // A check that writes into the repository (snapshots, build output) would mix with a fix.
+  const dirtiedByChecks = dirtyPaths(run.repoRoot).filter((p) => !dirtyBefore.has(p));
+  return out({ ok: true, label, file: join(run.runDir, `checks-${label}.json`), checks: summary, dirtiedByChecks });
 }
 
 function cmdCompare(f) {
@@ -190,8 +221,19 @@ function cmdLog(f) {
   const entry = readJson(f.entry);
   const md = renderLogEntry({ date: new Date().toISOString().slice(0, 10), ...entry });
   const logPath = join(run.repoRoot, 'HEALTHSWEEP_LOG.md');
-  if (!existsSync(logPath)) writeFileSync(logPath, `${LOG_HEADER}\n`);
-  appendFileSync(logPath, `\n${md}`);
+  // Never follow a symlink: a repository could point the log at a shell rc or an authorized_keys file.
+  let exists = false;
+  try {
+    const st = lstatSync(logPath);
+    if (st.isSymbolicLink() || !st.isFile()) throw new Error('HEALTHSWEEP_LOG.md is a symlink or not a regular file; refusing to write');
+    exists = true;
+  } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  if (realpathSync(run.repoRoot) !== realpathSync(join(logPath, '..'))) throw new Error('log path escapes the repository');
+  const fd = openSync(logPath, FS.O_WRONLY | FS.O_APPEND | FS.O_CREAT | FS.O_NOFOLLOW, 0o644);
+  try {
+    if (!exists) { fchmodSync(fd, 0o644); writeSync(fd, `${LOG_HEADER}\n`); } // a normal repo file despite the private umask
+    writeSync(fd, `\n${md}`);
+  } finally { closeSync(fd); }
   return out({ ok: true, logPath });
 }
 
@@ -257,7 +299,11 @@ async function cmdFanout(f) {
   }
   if (stage === 'verify') {
     const doc = readJson(join(run.runDir, 'findings.json'));
-    const ids = f.ids ? String(f.ids).split(',') : null;
+    const ids = splitList(f.ids);
+    const badId = (ids ?? []).find((id) => !/^HS-\d{3,}$/.test(id));
+    if (badId) throw new Error(`invalid finding id ${JSON.stringify(badId)}`);
+    const unknown = (ids ?? []).filter((id) => !doc.findings.some((x) => x.id === id));
+    if (unknown.length) throw new Error(`unknown finding id(s): ${unknown.join(', ')}`);
     const findings = ids ? doc.findings.filter((x) => ids.includes(x.id)) : aboveThreshold(doc.findings, f.threshold ?? run.config.costGate.threshold);
     const checks = run.config.checks.filter((c) => c.kind !== 'bench').map(({ name, cmd, cwd, timeoutSec }) => ({ name, cmd, cwd, timeoutSec }));
     const benchChecks = run.config.checks.filter((c) => c.kind === 'bench').map(({ name, cmd, cwd, timeoutSec }) => ({ name, cmd, cwd, timeoutSec }));
@@ -281,6 +327,7 @@ async function cmdFanout(f) {
 const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, compare: cmdCompare, consolidate: cmdConsolidate, log: cmdLog, report: cmdReport, prompt: cmdPrompt, agents: cmdAgents, fanout: cmdFanout, trust: cmdTrust };
 
 async function main() {
+  process.umask(0o077); // run artefacts (logs, findings, prompts) are private to the user
   const { command, flags } = parseArgs(process.argv.slice(2));
   const fn = COMMANDS[command];
   if (!fn) {

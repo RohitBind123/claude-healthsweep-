@@ -41,3 +41,11 @@ test('backtick fences in evidence cannot break out of the block', () => {
 test('LOG_HEADER explains what the file is', () => {
   assert.match(LOG_HEADER, /# HEALTHSWEEP_LOG/);
 });
+
+test('file paths and titles cannot inject markdown, and secrets are redacted', () => {
+  const md = renderLogEntry({ ...entry, finding: { ...entry.finding, file: 'a`b.ts', title: 'x\n## forged heading' }, diff: '+const token = "ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789"\n', testsAfter: 'API_KEY=abcdef123456 ok' });
+  assert.ok(!md.includes('\n## forged heading'));
+  assert.ok(!md.includes('a`b.ts'));
+  assert.ok(!md.includes('ghp_aBcDeF'));
+  assert.ok(!md.includes('abcdef123456'));
+});
