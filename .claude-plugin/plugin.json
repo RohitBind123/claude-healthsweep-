@@ -1,0 +1,14 @@
+{
+  "name": "healthsweep",
+  "displayName": "Healthsweep",
+  "version": "0.1.0",
+  "description": "Audit a codebase for bugs, security vulnerabilities and latency problems. Every finding is re-derived by an independent agent, fixes are drafted test-first in private worktrees, nothing is applied without your approval, and every applied fix is logged with its real diff and test output.",
+  "author": {
+    "name": "Rohit Bind",
+    "url": "https://github.com/RohitBind123"
+  },
+  "homepage": "https://github.com/RohitBind123/claude-healthsweep-",
+  "repository": "https://github.com/RohitBind123/claude-healthsweep-",
+  "license": "MIT",
+  "keywords": ["audit", "bugs", "security", "latency", "performance", "race-conditions", "code-review", "workflow", "evidence"]
+}

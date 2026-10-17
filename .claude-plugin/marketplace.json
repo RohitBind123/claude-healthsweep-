@@ -1,0 +1,16 @@
+{
+  "name": "healthsweep",
+  "owner": {
+    "name": "Rohit Bind",
+    "url": "https://github.com/RohitBind123"
+  },
+  "description": "Healthsweep: gated audit-and-fix sweeps for Claude Code.",
+  "plugins": [
+    {
+      "name": "healthsweep",
+      "source": "./",
+      "description": "Audit for bugs, security and latency; independent verification; human-approved fixes with an evidence log.",
+      "category": "development"
+    }
+  ]
+}

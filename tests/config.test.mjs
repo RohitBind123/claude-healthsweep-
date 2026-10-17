@@ -16,6 +16,11 @@ test('a minimal config is valid and gets defaults', () => {
   assert.equal(c.checks[0].cwd, '.');
   assert.deepEqual(c.scope, []);
   assert.equal(c.benchTolerancePct, 10);
+  assert.equal(c.worktreeSetup, null);
+});
+
+test('worktreeSetup is kept when given', () => {
+  assert.equal(validateConfig({ ...good, worktreeSetup: 'ln -s a b' }).worktreeSetup, 'ln -s a b');
 });
 
 test('a config with no ground truth is rejected', () => {
