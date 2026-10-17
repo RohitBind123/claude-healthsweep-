@@ -14,5 +14,5 @@
     // Compact "|---|" table delimiters are used throughout.
     "MD060": false
   },
-  "ignores": ["node_modules/**", "tasks/**", "CLAUDE-SECURITY-*/**"]
+  "ignores": ["node_modules/**", "tasks/**", "CLAUDE-SECURITY-*/**", "skills/healthsweep/prompts/**", "examples/demo-repo/**"]
 }
