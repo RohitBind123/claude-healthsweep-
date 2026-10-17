@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { validateConfig, resolveConfigPath, detectChecks } from '../scripts/lib/config.mjs';
+import { validateConfig, resolveConfigPath, detectChecks } from '../skills/healthsweep/scripts/lib/config.mjs';
 
 const good = {
   groundTruth: ['README.md'],

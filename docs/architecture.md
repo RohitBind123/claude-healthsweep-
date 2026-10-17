@@ -6,7 +6,7 @@ healthsweep has three parts:
 |---|---|---|---|
 | Skill | `skills/healthsweep/SKILL.md` | Your Claude Code session | Holds every human gate and decides what happens next. |
 | Workflows | `workflows/scan.js`, `workflows/verify.js` | Background, via the Workflow tool | The expensive fan-out: many agents in parallel. Never change your files. |
-| CLI | `scripts/healthsweep.mjs` + `scripts/lib/*.mjs` | Node, called by the skill | Deterministic work: config, git checks, running your checks, dedup, cost estimate, compare, log. Zero dependencies, unit-tested. |
+| CLI | `skills/healthsweep/scripts/healthsweep.mjs` + `skills/healthsweep/scripts/lib/*.mjs` | Node, called by the skill | Deterministic work: config, git checks, running your checks, dedup, cost estimate, compare, log. Zero dependencies, unit-tested. |
 
 ## Why the gates live in the skill and the fan-out in workflows
 
@@ -137,7 +137,7 @@ Finders return this shape (from `workflows/scan.js`):
 | `rationale` | string | The input or interleaving that triggers it, and what the user sees. Required. |
 | `trigger` | string | A reproduction recipe. Optional. |
 
-`consolidate` (in `scripts/lib/consolidate.mjs`) normalizes each finding: severity is upper-cased,
+`consolidate` (in `skills/healthsweep/scripts/lib/consolidate.mjs`) normalizes each finding: severity is upper-cased,
 category lower-cased, paths cleaned (`./`, backslashes, double slashes). A finding with an unknown
 severity or category, no file, or empty evidence is **rejected**, not guessed at; rejected findings and
 the reason are listed at the cost gate. Tier 3 records are mapped with `fromClaudeSecurity` (category
@@ -162,7 +162,7 @@ problems with two fixes.
 
 The estimate covers only the verify stage, which is where most of the spend is. It is shown at the
 cost gate as a low-high range, never as a bill. The numbers are `DEFAULT_COST_MODEL` in
-`scripts/lib/cost.mjs`:
+`skills/healthsweep/scripts/lib/cost.mjs`:
 
 | Step | Tokens per finding |
 |---|---|
@@ -182,10 +182,10 @@ workflow's `outputTokens`, and `REPORT.md` sums them (plus Tier 3 from its own r
 
 ## Test output parsing and regressions
 
-`scripts/lib/parse.mjs` reads the summary lines of jest, vitest, pytest, `node:test` and `go test`.
+`skills/healthsweep/scripts/lib/parse.mjs` reads the summary lines of jest, vitest, pytest, `node:test` and `go test`.
 Unknown output gives `null` counts, never zeros, so "no data" never reads as "0 failures".
 
-`scripts/lib/compare.mjs` judges an after-run against the baseline for the same checks. A check
+`skills/healthsweep/scripts/lib/compare.mjs` judges an after-run against the baseline for the same checks. A check
 regresses when it times out (and did not before), exits non-zero after exiting 0, has failures that
 were not in the baseline, passes fewer tests, fails more tests, or (bench) is slower by more than
 `benchTolerancePct`. Tests that already failed in the baseline do not count against a fix.

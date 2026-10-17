@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseTestOutput } from '../scripts/lib/parse.mjs';
+import { parseTestOutput } from '../skills/healthsweep/scripts/lib/parse.mjs';
 
 test('jest summary with failures', () => {
   const out = [

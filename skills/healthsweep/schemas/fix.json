@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "healthsweep fix",
+  "type": "object",
+  "required": [
+    "status",
+    "diff",
+    "filesChanged",
+    "testsBefore",
+    "testsAfter",
+    "notes"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "fixed",
+        "not-fixable-safely",
+        "tests-failed",
+        "setup-failed"
+      ]
+    },
+    "diff": {
+      "type": "string",
+      "description": "git diff of only the files you changed or created (empty if no change)"
+    },
+    "filesChanged": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "testAdded": {
+      "type": "string",
+      "description": "the regression test you added, if any (file and test name)"
+    },
+    "testsBefore": {
+      "type": "string",
+      "description": "real output tail of the scoped test command BEFORE your change (with the new test, so it should fail)"
+    },
+    "testsAfter": {
+      "type": "string",
+      "description": "real output tail of the same command AFTER your change"
+    },
+    "benchBefore": {
+      "type": "string"
+    },
+    "benchAfter": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

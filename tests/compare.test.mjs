@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compareRuns } from '../scripts/lib/compare.mjs';
+import { compareRuns } from '../skills/healthsweep/scripts/lib/compare.mjs';
 
 const run = (checks) => ({ checks });
 const chk = (name, o) => ({ name, kind: 'test', exitCode: 0, passed: 10, failed: 0, failures: [], ...o });

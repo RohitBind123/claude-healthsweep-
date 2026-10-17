@@ -1,0 +1,1 @@
+maintainability red flags with real risk only: duplicated business rules that can drift apart, dead branches that hide a missing case, functions so large that a change is likely to break something. Do not report style, naming or formatting.

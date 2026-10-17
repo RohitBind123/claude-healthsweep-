@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "healthsweep findings",
+  "type": "object",
+  "required": [
+    "findings",
+    "filesRead"
+  ],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "file",
+          "line",
+          "category",
+          "severity",
+          "title",
+          "evidence",
+          "rationale"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "repository-relative path"
+          },
+          "line": {
+            "type": "integer",
+            "description": "the exact line the problem is on"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "bug",
+              "security",
+              "latency",
+              "maintainability"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "one line"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "the actual code lines (verbatim, with line numbers) or a concrete trace / query shape. Never a paraphrase."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "why this is wrong: the input or interleaving that triggers it, and what the user or system sees"
+          },
+          "trigger": {
+            "type": "string",
+            "description": "a concrete reproduction recipe: inputs, call order or timing"
+          }
+        }
+      }
+    },
+    "filesRead": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notCovered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "files in your module you did not get to"
+    }
+  }
+}

@@ -14,9 +14,10 @@ npm run check
 
 `npm run check` runs two things, and CI runs the same:
 
-- `npm run check:workflows`: static checks on `workflows/*.js` (they parse, start with a literal
+- `npm run build`: regenerate `workflows/*.js` from `src/workflows/` and the shared prompts. Never edit `workflows/` by hand.
+- `npm run check:workflows`: confirms `workflows/` is up to date, then static checks on `workflows/*.js` (they parse, start with a literal
   `meta` block, declare every phase they use, and avoid APIs that break resume).
-- `npm test`: unit tests for `scripts/lib/*.mjs` and the CLI, using `node:test`.
+- `npm test`: unit tests for `skills/healthsweep/scripts/lib/*.mjs` and the CLI, using `node:test`.
 
 ## Repository layout
 
@@ -56,7 +57,7 @@ workflow inside a running session, use `/reload-plugins`.
   time- or environment-dependent belongs in the skill or the CLI.
 - **Human gates stay in the skill.** Workflows run in the background and must never change the user's
   files or decide on their behalf.
-- **Deterministic logic goes in `scripts/lib/` with tests.** Write the test first.
+- **Deterministic logic goes in `skills/healthsweep/scripts/lib/` with tests.** Write the test first.
 - **Missing data is not zero.** Parsers return `null` for unknown counts, never `0`.
 - **No new runtime dependencies** without discussing it in an issue first.
 - Keep the language in prompts and docs plain. No emojis.

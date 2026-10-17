@@ -4,7 +4,7 @@ Every fix healthsweep applies gets one entry in `HEALTHSWEEP_LOG.md` at the root
 The entry is committed in the same commit as the fix, so `git log` and the log always agree: if a fix
 is reverted, its entry goes with it.
 
-The log is written by `healthsweep.mjs log` using `scripts/lib/logentry.mjs`. The skill never writes
+The log is written by `healthsweep.mjs log` using `skills/healthsweep/scripts/lib/logentry.mjs`. The skill never writes
 entries by hand.
 
 ## What an entry contains

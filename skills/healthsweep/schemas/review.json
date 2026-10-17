@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "healthsweep review",
+  "type": "object",
+  "required": [
+    "verdict",
+    "behaviourChange",
+    "reasoning"
+  ],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "propose",
+        "manual-review",
+        "reject"
+      ]
+    },
+    "behaviourChange": {
+      "type": "boolean",
+      "description": "does the patch change behaviour a user or caller relies on, beyond removing the defect?"
+    },
+    "conflictsWithActiveWork": {
+      "type": "boolean"
+    },
+    "requirementRefs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ground-truth passages you checked (doc + heading/line)"
+    },
+    "reasoning": {
+      "type": "string"
+    }
+  }
+}

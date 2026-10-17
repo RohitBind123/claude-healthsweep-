@@ -93,7 +93,7 @@ The config is validated on every `init` and `preflight`. Errors start with
 To validate a file yourself from a checkout of this repo:
 
 ```bash
-node --input-type=module -e "import { validateConfig } from './scripts/lib/config.mjs'; import { readFileSync } from 'node:fs'; validateConfig(JSON.parse(readFileSync(process.argv[1], 'utf8'))); console.log('valid')" path/to/config.json
+node --input-type=module -e "import { validateConfig } from './skills/healthsweep/scripts/lib/config.mjs'; import { readFileSync } from 'node:fs'; validateConfig(JSON.parse(readFileSync(process.argv[1], 'utf8'))); console.log('valid')" path/to/config.json
 ```
 
 ## Tips

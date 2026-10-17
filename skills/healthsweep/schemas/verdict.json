@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "healthsweep verdict",
+  "type": "object",
+  "required": [
+    "real",
+    "reasoning",
+    "codeRead"
+  ],
+  "properties": {
+    "real": {
+      "type": "boolean"
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "your own derivation from the code, not a restatement of the finding"
+    },
+    "codeRead": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "file:line ranges you actually read"
+    },
+    "reproduction": {
+      "type": "string",
+      "description": "the concrete input/interleaving that triggers it, or why none exists"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "CRITICAL",
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ],
+      "description": "your own severity rating"
+    }
+  }
+}

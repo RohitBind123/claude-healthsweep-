@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { globToRegExp, matchesAny, selectScopedChecks } from '../scripts/lib/glob.mjs';
+import { globToRegExp, matchesAny, selectScopedChecks } from '../skills/healthsweep/scripts/lib/glob.mjs';
 
 test('** matches across directories, * does not', () => {
   assert.ok(globToRegExp('src/**/*.ts').test('src/a/b/c.ts'));

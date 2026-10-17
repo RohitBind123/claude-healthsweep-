@@ -14,6 +14,13 @@ import { compareRuns } from './lib/compare.mjs';
 import { consolidate, countBySeverity, fromClaudeSecurity, normalizeFinding } from './lib/consolidate.mjs';
 import { aboveThreshold, estimateReviewCost, DEFAULT_COST_MODEL } from './lib/cost.mjs';
 import { renderLogEntry, LOG_HEADER } from './lib/logentry.mjs';
+import { renderReport } from './lib/report.mjs';
+import { loadPrompts, loadSchemas } from './lib/prompts.mjs';
+import { renderPrompt } from './lib/shared.mjs';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SKILL_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const GROUND_TRUTH_CANDIDATES = ['PLAN.md', 'SPEC.md', 'README.md', 'CLAUDE.md', 'AGENTS.md', 'docs/'];
 
@@ -159,7 +166,39 @@ function cmdLog(f) {
   return out({ ok: true, logPath });
 }
 
-const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, compare: cmdCompare, consolidate: cmdConsolidate, log: cmdLog };
+function cmdReport(f) {
+  const run = loadRun(f.run);
+  const opt = (name) => (existsSync(join(run.runDir, name)) ? readJson(join(run.runDir, name)) : null);
+  const tier2 = opt('tier2.json');
+  const verify = opt('verify.json');
+  const md = renderReport({
+    run,
+    baseline: readJson(join(run.runDir, 'checks-baseline.json')),
+    findingsDoc: readJson(join(run.runDir, 'findings.json')),
+    verify,
+    tier3: f.tier3 ? { ran: true } : { ran: false, reason: f['tier3-reason'] ?? 'not run' },
+    tokens: { tier2Output: tier2?.outputTokens ?? null, tier2Total: f['tier2-total'] ? Number(f['tier2-total']) : null, verifyOutput: verify?.outputTokens ?? null },
+    mode: verify ? 'verify' : 'report-only',
+    date: new Date().toISOString().slice(0, 10),
+  });
+  const path = join(run.runDir, 'REPORT.md');
+  writeFileSync(path, md);
+  return out({ ok: true, report: path });
+}
+
+// Render a role prompt for any agent: node healthsweep.mjs prompt verifier --vars vars.json
+function cmdPrompt(f) {
+  const prompts = loadPrompts(join(SKILL_DIR, 'prompts'));
+  const name = f._[0];
+  if (!name || f.list) return out({ ok: true, prompts: Object.keys(prompts).filter((n) => !n.startsWith('_')) });
+  const vars = f.vars ? readJson(f.vars) : {};
+  const text = renderPrompt(prompts, name, vars);
+  const schemaName = f.schema;
+  const schema = schemaName ? loadSchemas(join(SKILL_DIR, 'schemas'))[schemaName] : null;
+  process.stdout.write(schema ? `${text}\n\nReturn ONLY one JSON object matching this JSON schema:\n${JSON.stringify(schema)}\n` : `${text}\n`);
+}
+
+const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, compare: cmdCompare, consolidate: cmdConsolidate, log: cmdLog, report: cmdReport, prompt: cmdPrompt };
 
 async function main() {
   const { command, flags } = parseArgs(process.argv.slice(2));

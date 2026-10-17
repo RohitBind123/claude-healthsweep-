@@ -1,0 +1,1 @@
+logic bugs: wrong conditions, off-by-one, wrong units or rounding, null/undefined paths, swallowed errors, wrong status transitions, missing validation at a boundary, values coerced to 0 or defaults that hide missing data.

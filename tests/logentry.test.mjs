@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderLogEntry, LOG_HEADER } from '../scripts/lib/logentry.mjs';
+import { renderLogEntry, LOG_HEADER } from '../skills/healthsweep/scripts/lib/logentry.mjs';
 
 const entry = {
   date: '2026-10-17',

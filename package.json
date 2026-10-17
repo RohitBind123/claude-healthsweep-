@@ -9,8 +9,9 @@
     "node": ">=20"
   },
   "scripts": {
+    "build": "node scripts/build-workflows.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check:workflows": "node scripts/check-workflows.mjs",
+    "check:workflows": "node scripts/build-workflows.mjs --check && node scripts/check-workflows.mjs",
     "check": "npm run check:workflows && npm test"
   }
 }

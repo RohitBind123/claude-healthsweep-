@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'healthsweep.mjs');
+const CLI = join(dirname(fileURLToPath(import.meta.url)), '..', 'skills', 'healthsweep', 'scripts', 'healthsweep.mjs');
 
 function setup() {
   const root = mkdtempSync(join(tmpdir(), 'hs-cli-'));
@@ -74,6 +74,12 @@ test('full happy path: preflight, baseline, consolidate, scoped checks, compare,
     finding: { id: 'HS-001', title: 'off by one', severity: 'HIGH', category: 'bug', file: 'src/a.js', line: 3, evidence: 'i <= n' },
     verification: 'reproduced with n=0', diff: '-i <= n\n+i < n', testsBefore: 'Tests: 4 passed', testsAfter: 'Tests: 5 passed',
   }));
+  const rep = run('report', '--run', runDir, '--tier3-reason', 'not installed');
+  assert.equal(rep.json.ok, true);
+  const reportMd = readFileSync(rep.json.report, 'utf8');
+  assert.match(reportMd, /Report only/);
+  assert.match(reportMd, /off by one/);
+
   const lg = run('log', '--run', runDir, '--entry', entry);
   assert.equal(lg.json.ok, true);
   const md = readFileSync(join(repo, 'HEALTHSWEEP_LOG.md'), 'utf8');
@@ -104,6 +110,20 @@ test('init accepts absolute ground-truth paths outside the repo', () => {
   const r = run('init', '--repo', repo);
   assert.deepEqual(r.json.missingGroundTruth, []);
   assert.equal(r.json.ok, true);
+});
+
+test('prompt renders a role prompt with its schema for any agent', () => {
+  const root = mkdtempSync(join(tmpdir(), 'hs-cli-'));
+  const vars = join(root, 'v.json');
+  writeFileSync(vars, JSON.stringify({ context: 'Repository root: /r', id: 'HS-001', severity: 'HIGH', category: 'bug', title: 'race', file: 'a.js', line: 3, evidence: 'x', rationale: 'r', lens: 'Read the code.' }));
+  const r = spawnSync('node', [CLI, 'prompt', 'verifier', '--vars', vars, '--schema', 'verdict'], { encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /try to DISPROVE it/);
+  assert.match(r.stdout, /Return ONLY one JSON object/);
+  assert.match(r.stdout, /"real"/);
+  const list = JSON.parse(spawnSync('node', [CLI, 'prompt', '--list'], { encoding: 'utf8' }).stdout);
+  assert.ok(list.prompts.includes('fixer'));
+  assert.ok(!list.prompts.includes('_rules-readonly'));
 });
 
 test('unknown command exits 64', () => {

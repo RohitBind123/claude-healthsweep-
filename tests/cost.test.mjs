@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { estimateReviewCost, aboveThreshold, DEFAULT_COST_MODEL } from '../scripts/lib/cost.mjs';
+import { estimateReviewCost, aboveThreshold, DEFAULT_COST_MODEL } from '../skills/healthsweep/scripts/lib/cost.mjs';
 
 const mk = (severity, category = 'bug') => ({ severity, category });
 

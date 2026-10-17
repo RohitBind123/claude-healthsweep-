@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeFinding, consolidate, countBySeverity, fromClaudeSecurity } from '../scripts/lib/consolidate.mjs';
+import { normalizeFinding, consolidate, countBySeverity, fromClaudeSecurity } from '../skills/healthsweep/scripts/lib/consolidate.mjs';
 
 const f = (o) => ({
   file: 'src/pay.ts', line: 10, category: 'bug', severity: 'MEDIUM',

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runCheck, runChecks } from '../scripts/lib/run.mjs';
+import { runCheck, runChecks } from '../skills/healthsweep/scripts/lib/run.mjs';
 
 const dir = () => mkdtempSync(join(tmpdir(), 'hs-run-'));
 
