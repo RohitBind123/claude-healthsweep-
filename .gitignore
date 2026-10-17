@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+# personal working notes
+tasks/
+# healthsweep run artefacts if someone points a run dir here
+.healthsweep-runs/
+CLAUDE-SECURITY-*/
