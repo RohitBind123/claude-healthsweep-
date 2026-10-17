@@ -31,8 +31,30 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from `src/workflows/` (`npm run build`).
 - The fixer worktree is created and removed by the CLI in Mode B, and the diff comes from git.
 
+### Security
+
+- A config's commands (checks, setup step, agent commands, env, notes) never run until the user has
+  seen and trusted that exact set for that repository; any change needs trust again.
+- Mode B fixer runs only with `--allow-write`, with a minimal environment, git hooks disabled for our
+  git calls, and tamper detection on the shared hooks and git config.
+- Patches are taken from git against a post-setup snapshot; configured checks run in the worktree and
+  are compared with the baseline; build/CI/lockfile/dotfile or out-of-scope changes are never proposed
+  as safe, and symlinks or mode changes are rejected.
+- Secrets are redacted in findings, REPORT.md and HEALTHSWEEP_LOG.md; run artefacts are private.
+- HEALTHSWEEP_LOG.md is written without following symlinks; finding paths, `--files`, `--ids`,
+  `--stamp` and `--label` are validated; markdown in titles and paths is escaped.
+- Installer refuses symlinked or self-overlapping destinations and folders it did not create.
+- GitHub Actions pinned to commit SHAs; release job is the only one with write access.
+
 ### Fixed
 
+- Fan-out patches kept their final newline (they were trimmed and failed `git apply`), and staged,
+  committed or renamed fixer changes are captured.
+- Agent runner: validated concurrency and timeouts, no crash when an agent cannot start, capped output,
+  linear JSON extraction, no hang when a grandchild holds the pipes, signals kill every agent.
+- Deduplication no longer merges different bugs a few lines apart; comparison reports checks it cannot
+  judge as unknown and treats a missing check or lost bench metric as a regression.
+- Flags accept `--key=value` and `--`, and value flags without a value are errors.
 - Test-runner output is decoded as a stream, and failing-test names are normalised, so a split
   multi-byte character or jest's duplicated summary no longer looks like a new failure.
 - The check runner waits for its log file to flush before it returns.

@@ -52,7 +52,7 @@ to see where it would go. Restart the agent afterwards.
 Add an `agent` entry to your healthsweep config. A preset is easiest:
 
 ```json
-{ "agent": { "preset": "codex", "concurrency": 3, "timeoutSec": 1200 } }
+{ "agent": { "preset": "codex", "concurrency": 3, "timeoutSec": 1200, "env": "minimal" } }
 ```
 
 `healthsweep agents` lists the presets and which CLIs are installed. Each preset has a read-only
@@ -84,9 +84,20 @@ anything the `worktreeSetup` step created is left out.
 
 ### Safety notes for Mode B
 
-- The fixer command can edit files and run commands. It runs inside a throwaway worktree under
+- Changing `agent` (or any command) changes the config fingerprint, so healthsweep asks you to trust
+  the config again before anything runs.
+- `fanout verify` drafts fixes only with `--allow-write`. The skill asks first and shows the exact
+  write command. Without the flag only the read-only verifiers run.
+- The fixer can edit files and run commands. It runs inside a throwaway worktree under
   `~/.claude/healthsweep/runs/…`, never in your repository, but a write-mode agent can still reach
   anything your user account can. Use your agent's sandbox options where it has them.
+- Agents get a minimal environment by default (`"env": "minimal"`): PATH, HOME, locale, proxy
+  settings and the agent tools' own auth variables, not every secret in your shell. Use
+  `"env": "inherit"` only if your agent needs something else.
+- If the fixer changes git hooks or git config, its patch is discarded and the finding is marked
+  `reject`. The configured checks run in the worktree and are compared with your baseline, so a fix
+  that breaks a check is never proposed.
+- Ctrl-C stops every agent process healthsweep started.
 - Read-only presets rely on each tool's own read-only or plan mode. Check your tool's docs if you
   change them.
 - Presets marked "from docs" have not been run end to end by the maintainers yet. Reports welcome.
