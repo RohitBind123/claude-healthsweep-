@@ -25,4 +25,4 @@ Sleep 300ms
 Enter
 
 # 7 steps held DEMO_PAUSE seconds each, two of them 2s longer, plus the final hold.
-Sleep 37s
+Sleep 43s

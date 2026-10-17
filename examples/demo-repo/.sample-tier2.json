@@ -16,7 +16,7 @@
       "line": 7,
       "category": "bug",
       "severity": "MEDIUM",
-      "title": "update() does not check the job is still pending",
+      "title": "Two workers can claim the same job: update() does not re-check the job is still pending",
       "evidence": "const claimed = await store.update(job.id, {",
       "rationale": "The write overwrites claimedBy unconditionally; a job claimed by another worker in the meantime is silently re-assigned.",
       "confidence": "MEDIUM",

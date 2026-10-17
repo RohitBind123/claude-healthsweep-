@@ -60,7 +60,12 @@ cd "$DEMO"
 step "1. init: config and ground truth" "A toy job queue. README.md is the ground truth: each job is claimed by exactly one worker."
 hs init | show ok configPath config.groundTruth config.checks.0.cmd missingGroundTruth
 
-step "2. preflight on a dirty tree" "Someone has uncommitted work. healthsweep must stop and touch nothing."
+step "2. trust the config before anything runs" "A config is code. Its commands run only after the user has seen and trusted them."
+hs preflight | show ok reason commands.checks
+printf '%sThe skill shows these commands to the user and asks. Only on a yes:%s\n' "$Y" "$R"
+hs trust | show ok fingerprint
+
+step "3. preflight on a dirty tree" "Someone has uncommitted work. healthsweep must stop and touch nothing."
 cmd "echo '// wip' >> src/jobs/claim.js"
 echo '// wip' >> src/jobs/claim.js
 hs preflight | show ok reason dirty
@@ -68,7 +73,7 @@ cmd "git diff --stat"
 git diff --stat
 printf '%sSTOP: dirty tree. Nothing stashed, reset or changed.%s\n' "$Y" "$R"
 
-step "3. clean tree, preflight OK" "The user tidies up (here: drops the wip line), then re-runs."
+step "4. clean tree, preflight OK" "The user tidies up (here: drops the wip line), then re-runs."
 cmd "git checkout -- src/jobs/claim.js"
 git checkout -- src/jobs/claim.js
 PRE="$(node "$CLI" preflight)"
@@ -78,11 +83,11 @@ RUN="$(printf '%s' "$PRE" | node -e 'console.log(JSON.parse(require("fs").readFi
 printf '  runDir: %s\n' "$RUN" | sed "s#$WORK#/tmp#g"
 printf '%s(run files live under $HOME/.claude, outside the repo, so the tree stays clean)%s\n' "$D" "$R"
 
-step "4. baseline checks (Tier 1): the real test suite" "All tests pass. They do not exercise two workers at once."
+step "5. baseline checks (Tier 1): the real test suite" "All tests pass. They do not exercise two workers at once."
 hs checks --run "$RUN" --label baseline 2>&1 >"$WORK/checks.json" | scrub
 show ok checks.0.name checks.0.framework checks.0.exitCode checks.0.passed checks.0.failed <"$WORK/checks.json"
 
-step "5. consolidate finder output" "SAMPLE finder output (in a real run the scan agents produce this): 3 raw findings."
+step "6. consolidate finder output" "SAMPLE finder output (in a real run the scan agents produce this): 3 raw findings."
 cp "$WORK/sample-tier2.json" "$RUN/tier2.json"
 hs consolidate --run "$RUN" --tier2 "$RUN/tier2.json" \
   | show counts.total counts.bySeverity counts.byCategory threshold estimateAboveThreshold rejected
@@ -90,9 +95,9 @@ node -e '
   const d = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
   for (const f of d.findings) console.log(`  ${f.id} ${f.severity.padEnd(4)} ${f.category.padEnd(7)} ${f.file}:${f.line}  ${f.title}\n         reported by: ${f.sources.join(", ")}`);
 ' "$RUN/findings.json"
-printf '%sThe two race reports 3 lines apart were merged into one finding.%s\n' "$D" "$R"
+printf '%sThe two reports of the same race, 3 lines apart, were merged into one finding.%s\n' "$D" "$R"
 
-step "6. prompt for an independent verifier (HS-001)" "Any agent can be handed this. It must try to DISPROVE the finding."
+step "7. prompt for an independent verifier (HS-001)" "Any agent can be handed this. It must try to DISPROVE the finding."
 node --input-type=module -e '
   import { readFileSync, writeFileSync } from "node:fs";
   const [shared, findings, lensDir, out, repoRoot] = process.argv.slice(1);
@@ -108,7 +113,7 @@ cmd "healthsweep prompt verifier --vars vars.json | head"
 node "$CLI" prompt verifier --vars "$WORK/vars.json" | sed "s#$WORK#/tmp#g" | fold -s -w 120 | head -21
 hold 2
 
-step "7. report" "No verifier ran in this demo, so the report says so: report only, nothing changed."
+step "8. report" "No verifier ran in this demo, so the report says so: report only, nothing changed."
 hs report --run "$RUN" --tier3-reason "disabled in config" | show ok
 cmd "cat \$RUN/REPORT.md   (excerpt)"
 { sed -n '1,6p' "$RUN/REPORT.md"; sed -n '/^## Baseline/,/^## Details/p' "$RUN/REPORT.md" | sed '$d'; } \
