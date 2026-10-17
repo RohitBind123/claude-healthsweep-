@@ -93,6 +93,19 @@ test('init without a config suggests checks and ground truth', () => {
   assert.equal(j.detectedChecks[0].cmd, 'npm test');
 });
 
+test('init accepts absolute ground-truth paths outside the repo', () => {
+  const { repo, run, root } = setup();
+  const outside = join(root, 'SPEC.md');
+  writeFileSync(outside, '# spec');
+  writeFileSync(join(repo, '.healthsweep.json'), JSON.stringify({
+    groundTruth: ['README.md', outside],
+    checks: [{ name: 'unit', kind: 'test', cmd: 'true' }],
+  }));
+  const r = run('init', '--repo', repo);
+  assert.deepEqual(r.json.missingGroundTruth, []);
+  assert.equal(r.json.ok, true);
+});
+
 test('unknown command exits 64', () => {
   const r = spawnSync('node', [CLI, 'nope'], { encoding: 'utf8' });
   assert.equal(r.status, 64);

@@ -52,7 +52,7 @@ function cmdInit(f) {
   const configPath = resolveConfigPath({ repoRoot, home: homedir(), explicit: f.config });
   if (configPath && existsSync(configPath)) {
     const config = loadConfig(configPath);
-    const missing = config.groundTruth.filter((g) => !existsSync(join(repoRoot, g)));
+    const missing = [...config.groundTruth, ...config.activeWork].filter((g) => !existsSync(resolve(repoRoot, g)));
     return out({ ok: missing.length === 0, configPath, config, missingGroundTruth: missing });
   }
   const candidates = GROUND_TRUTH_CANDIDATES.filter((g) => existsSync(join(repoRoot, g)));
