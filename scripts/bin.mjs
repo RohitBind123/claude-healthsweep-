@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Entry point for `npx github:RohitBind123/claude-healthsweep- <command>`.
-//   install [--agent <name>|--all] [--project] [--link] [--dry-run]   put the skill where your agent looks
+//   install [--agent <name>|--all] [--project] [--link] [--force] [--dry-run]   put the skill where your agent looks
 //   anything else                                                      run the skill CLI (init, preflight, ...)
 
 import { spawnSync } from 'node:child_process';
