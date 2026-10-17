@@ -1,0 +1,18 @@
+{
+  // Lint rules for every Markdown file in the repo. Run locally with:
+  //   npx --yes markdownlint-cli2 "**/*.md" "#node_modules"
+  "config": {
+    "default": true,
+    // Long lines are fine; prose is wrapped by hand.
+    "MD013": false,
+    // Inline HTML is used for the README hero and badges.
+    "MD033": false,
+    // Not every file starts with a top-level heading (for example SKILL.md front matter).
+    "MD041": false,
+    // Keep a Changelog repeats "### Added" under each release.
+    "MD024": { "siblings_only": true },
+    // Compact "|---|" table delimiters are used throughout.
+    "MD060": false
+  },
+  "ignores": ["node_modules/**", "tasks/**", "CLAUDE-SECURITY-*/**"]
+}

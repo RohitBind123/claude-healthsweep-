@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: check (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm run check
+
+  manifests:
+    name: plugin manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate .claude-plugin JSON
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, readdirSync } from 'node:fs';
+          const fail = (msg) => { console.error(`::error::${msg}`); process.exitCode = 1; };
+          const read = (p) => {
+            try { return JSON.parse(readFileSync(p, 'utf8')); }
+            catch (e) { fail(`${p} does not parse: ${e.message}`); return null; }
+          };
+          for (const f of readdirSync('.claude-plugin').filter((n) => n.endsWith('.json'))) read(`.claude-plugin/${f}`);
+          const plugin = read('.claude-plugin/plugin.json');
+          const market = read('.claude-plugin/marketplace.json');
+          const pkg = read('package.json');
+          if (plugin && market) {
+            const listed = market.plugins?.[0]?.name;
+            if (plugin.name !== listed) fail(`plugin.json name "${plugin.name}" != marketplace plugins[0].name "${listed}"`);
+            if (/^claude-/.test(plugin.name)) fail(`plugin name "${plugin.name}" must not start with "claude-"`);
+          }
+          if (plugin && pkg && plugin.version !== pkg.version) fail(`plugin.json version ${plugin.version} != package.json version ${pkg.version}`);
+          if (!process.exitCode) console.log(`ok: ${plugin.name}@${plugin.version}`);
+          JS
+
+  markdown:
+    name: markdownlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: "**/*.md"
+
+  links:
+    name: link check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-retries 2
+            --accept 200,206,429
+            --exclude-path node_modules
+            "./**/*.md"
+          # github.com and shields.io rate-limit CI runners; report, do not fail.
+          fail: false

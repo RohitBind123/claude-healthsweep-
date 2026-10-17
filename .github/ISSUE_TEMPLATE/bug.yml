@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in healthsweep did not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please remove secrets, internal hostnames and proprietary code from anything you paste.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and at which step (config, preflight, baseline, scan, cost gate, verify, approval, final checks, report).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The exact /healthsweep command and options, and a minimal repo or config if you can share one.
+      placeholder: |
+        1. /healthsweep --scope src --no-tier3
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Relevant output
+      description: CLI JSON output, workflow log lines or check logs from ~/.claude/healthsweep/runs/. Trim to the relevant part.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: healthsweep version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and Node.js version
+      placeholder: "macOS 15, Node 22.11"
+  - type: dropdown
+    id: tier3
+    attributes:
+      label: Claude Security plugin installed?
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
