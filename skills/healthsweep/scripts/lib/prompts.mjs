@@ -52,32 +52,52 @@ export function validate(schema, value, path = '') {
   return errs;
 }
 
+const MAX_JSON_ATTEMPTS = 2000;
+
+// Is the quote at text[i] a real (unescaped) quote? Count the backslashes before it.
+function isRealQuote(text, i) {
+  let n = 0;
+  for (let k = i - 1; k >= 0 && text[k] === '\\'; k -= 1) n += 1;
+  return n % 2 === 0;
+}
+
+// The last complete JSON object in text, found from the end backwards: try each '}' from the
+// right, walk back to its matching '{' (string-aware), and parse. Matching from the closing
+// brace yields the outermost object ending there. Attempts and total scanned characters are
+// capped, so hostile input (megabytes of braces) costs linear time, not quadratic.
 function objectsIn(text) {
-  const found = [];
-  for (let i = 0; i < text.length; i += 1) {
-    if (text[i] !== '{') continue;
-    let depth = 0; let inStr = false; let esc = false;
-    for (let j = i; j < text.length; j += 1) {
+  let budget = 8 * text.length + 100000;
+  let close = text.lastIndexOf('}');
+  for (let attempt = 0; close >= 0 && attempt < MAX_JSON_ATTEMPTS && budget > 0; attempt += 1) {
+    let depth = 0; let inStr = false; let start = -1;
+    for (let j = close; j >= 0 && budget > 0; j -= 1, budget -= 1) {
       const c = text[j];
-      if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
-      if (c === '"') inStr = true;
-      else if (c === '{') depth += 1;
-      else if (c === '}' && --depth === 0) {
-        try { found.push(JSON.parse(text.slice(i, j + 1))); i = j; } catch { /* not JSON, keep scanning */ }
-        break;
-      }
+      if (c === '"' && isRealQuote(text, j)) inStr = !inStr;
+      else if (inStr) continue;
+      else if (c === '}') depth += 1;
+      else if (c === '{' && --depth === 0) { start = j; break; }
     }
+    if (start >= 0) {
+      try {
+        const value = JSON.parse(text.slice(start, close + 1));
+        return { value, start };
+      } catch { /* not JSON, try the previous closing brace */ }
+    }
+    close = close > 0 ? text.lastIndexOf('}', close - 1) : -1;
   }
-  return found;
+  return null;
 }
 
 // Agents wrap answers in prose, fences, or a CLI envelope ({"type":"result","result":"..."}).
 export function extractJson(text) {
-  const objs = objectsIn(String(text ?? ''));
-  if (!objs.length) return null;
-  const last = objs[objs.length - 1];
+  const str = String(text ?? '');
+  const found = objectsIn(str);
+  if (!found) return null;
+  const last = found.value;
+  // Unwrap an envelope only when it is the only object (nothing object-like before it).
+  const alone = str.lastIndexOf('{', found.start - 1) === -1 || found.start === 0;
   for (const key of ['result', 'response', 'output', 'text']) {
-    if (objs.length === 1 && typeof last[key] === 'string') {
+    if (alone && typeof last[key] === 'string') {
       const inner = extractJson(last[key]);
       if (inner) return inner;
     }

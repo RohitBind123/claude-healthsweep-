@@ -64,3 +64,22 @@ test('extractJson unwraps a claude -p --output-format json envelope', () => {
   const env = JSON.stringify({ type: 'result', result: 'ok\n{"real":false,"reasoning":"guarded","codeRead":[]}' });
   assert.deepEqual(extractJson(env), { real: false, reasoning: 'guarded', codeRead: [] });
 });
+
+test('extractJson unwraps a gemini -o json envelope', () => {
+  const env = JSON.stringify({ response: 'done ```json\n{"a":{"b":2}}\n```' });
+  assert.deepEqual(extractJson(env), { a: { b: 2 } });
+});
+
+test('extractJson keeps the outer object when the last one has nested objects', () => {
+  assert.deepEqual(extractJson('x {"x":{"a":1},"y":{"b":2}} trailing } brace'), { x: { a: 1 }, y: { b: 2 } });
+  assert.deepEqual(extractJson('{"q":"say \\"}\\" ok"}'), { q: 'say "}" ok' });
+});
+
+test('extractJson is fast on hostile input with many braces', () => {
+  const t0 = Date.now();
+  assert.equal(extractJson('{"a":'.repeat(200000) + '}'.repeat(3)), null);
+  const big = 'noise { '.repeat(50000) + '{"ok":true}';
+  assert.deepEqual(extractJson(big), { ok: true });
+  assert.equal(extractJson('}'.repeat(300000)), null);
+  assert.ok(Date.now() - t0 < 3000, `took ${Date.now() - t0}ms`);
+});
