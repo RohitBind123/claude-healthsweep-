@@ -1,7 +1,7 @@
 {
   "name": "healthsweep",
   "displayName": "Healthsweep",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Audit a codebase for bugs, security vulnerabilities and latency problems. Every finding is re-derived by an independent agent, fixes are drafted test-first in private worktrees, nothing is applied without your approval, and every applied fix is logged with its real diff and test output.",
   "author": {
     "name": "Rohit Bind",

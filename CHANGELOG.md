@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-17
+
+### Added
+
+- Published to npm as `healthsweep`: `npx healthsweep install --agent <name>`.
+- `healthsweep --version`.
+- The release workflow publishes to npm (with provenance) and attaches the package tarball to the
+  GitHub release.
+- Package test: packs the real tarball, installs it into an empty project and runs it.
+
 ## [0.2.0] - 2026-10-17
 
 ### Added

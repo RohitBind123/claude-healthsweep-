@@ -50,8 +50,8 @@ testing, `/reload-plugins` did not always pick up a plugin installed mid-session
 ### Codex, Cursor, Gemini CLI, GitHub Copilot, OpenCode
 
 ```bash
-npx github:RohitBind123/claude-healthsweep-#v0.2.0 install --agent codex   # or cursor, gemini, copilot, opencode
-npx github:RohitBind123/claude-healthsweep-#v0.2.0 install --all           # every agent at once
+npx healthsweep@0.2.1 install --agent codex   # or cursor, gemini, copilot, opencode
+npx healthsweep@0.2.1 install --all           # every agent at once
 ```
 
 This copies the self-contained skill folder to where your agent looks (`~/.agents/skills`,

@@ -25,13 +25,13 @@ Claude Code (recommended: adds workflows and the Tier 3 Claude Security scan):
 
 Every other agent:
 
-Pin a release tag or a commit SHA after `#` (as below) so the install is reproducible and runs code you have reviewed.
+Pin a version (`healthsweep@0.2.1`, as below) so the install is reproducible and runs code you have reviewed. Without npm, install straight from a GitHub release: `npx github:RohitBind123/claude-healthsweep-#v0.2.1 install --agent codex`.
 
 ```bash
-npx github:RohitBind123/claude-healthsweep-#v0.2.0 install --agent codex     # or cursor, gemini, copilot, opencode, claude
-npx github:RohitBind123/claude-healthsweep-#v0.2.0 install --agent agents    # ~/.agents/skills, read by most agents
-npx github:RohitBind123/claude-healthsweep-#v0.2.0 install --all             # every agent's folder
-npx github:RohitBind123/claude-healthsweep-#v0.2.0 install --agent copilot --project   # into this repo (.github/skills)
+npx healthsweep@0.2.1 install --agent codex     # or cursor, gemini, copilot, opencode, claude
+npx healthsweep@0.2.1 install --agent agents    # ~/.agents/skills, read by most agents
+npx healthsweep@0.2.1 install --all             # every agent's folder
+npx healthsweep@0.2.1 install --agent copilot --project   # into this repo (.github/skills)
 ```
 
 Add `--link` to symlink a local checkout instead of copying (handy while developing) and `--dry-run`

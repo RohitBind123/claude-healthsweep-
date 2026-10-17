@@ -8,6 +8,11 @@ import { join } from 'node:path';
 import { install, SKILL_SRC, USAGE } from './install.mjs';
 
 const [cmd, ...rest] = process.argv.slice(2);
+if (cmd === '--version' || cmd === '-v') {
+  const { readFileSync } = await import('node:fs');
+  console.log(JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version);
+  process.exit(0);
+}
 if (cmd === 'install') {
   try { install(rest); } catch (e) { console.error(`${e.message}\n${USAGE}`); process.exit(1); }
 } else if (!cmd || cmd === '--help' || cmd === '-h') {
