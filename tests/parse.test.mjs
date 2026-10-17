@@ -17,6 +17,11 @@ test('jest summary with failures', () => {
   assert.deepEqual(r.failures, ['quotes › calculatePremium › locks the row']);
 });
 
+test('jest repeats failure headers in its summary; names are listed once', () => {
+  const out = '  ● a › b\n\n  ● a › b\n\nTests:       1 failed, 1 total\n';
+  assert.deepEqual(parseTestOutput(out).failures, ['a › b']);
+});
+
 test('jest all passing', () => {
   const r = parseTestOutput('Tests:       12 passed, 12 total\n');
   assert.equal(r.passed, 12);

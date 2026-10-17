@@ -20,6 +20,16 @@ test('runCheck records exit code, duration and parsed counts', async () => {
   assert.match(readFileSync(r.logFile, 'utf8'), /3 passed/);
 });
 
+test('multi-byte characters split across output chunks survive intact', async () => {
+  const out = dir();
+  // 132000 bytes of a 3-byte character: the 131072-byte pipe chunk boundary splits one, inside the tail
+  const r = await runCheck(
+    { name: 'emoji', kind: 'test', cmd: `node -e "process.stdout.write('\\u2713'.repeat(44000))"`, cwd: '.', timeoutSec: 30, env: {} },
+    { repoRoot: out, outDir: out },
+  );
+  assert.ok(!r.tail.includes('�'));
+});
+
 test('runCheck marks a timeout and kills the process', async () => {
   const out = dir();
   const r = await runCheck(

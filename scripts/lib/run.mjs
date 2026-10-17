@@ -29,11 +29,14 @@ export function runCheck(check, { repoRoot, outDir, label = '' }) {
       cwd, shell: true, detached: true,
       env: { ...process.env, CI: '1', FORCE_COLOR: '0', ...check.env },
     });
-    const onData = (buf) => {
-      log.write(buf);
-      output += buf.toString();
+    const onData = (text) => {
+      log.write(text);
+      output += text;
       if (output.length > 4_000_000) output = output.slice(-2_000_000);
     };
+    // setEncoding uses a streaming decoder, so a character split across chunks stays whole
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
     child.stdout.on('data', onData);
     child.stderr.on('data', onData);
     const timer = setTimeout(() => {

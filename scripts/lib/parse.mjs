@@ -9,9 +9,9 @@ function num(re, text) {
 }
 
 function collect(re, text) {
-  const out = [];
-  for (const m of text.matchAll(re)) out.push(m[1].trim());
-  return out;
+  const out = new Set();
+  for (const m of text.matchAll(re)) out.add(m[1].trim());
+  return [...out];
 }
 
 function jest(text) {
