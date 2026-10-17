@@ -19,6 +19,9 @@ if (!a || !a.repoRoot || !a.runDir || !a.startSha || !Array.isArray(a.findings))
   log('verify was started without settings; run /healthsweep instead')
   return { started: false, reason: 'no-args', next: 'Tell the user to run /healthsweep; do not improvise.' }
 }
+const badFindings = a.findings.filter(f => !validFinding(f))
+if (badFindings.length) log(`ignored ${badFindings.length} malformed finding(s): ${badFindings.map(f => JSON.stringify(f && f.id)).join(', ')}`)
+a.findings = a.findings.filter(validFinding)
 if (!a.findings.length) return { started: true, results: [], outputTokens: 0 }
 
 const context = buildContext(a, ` (at commit ${a.startSha})`)
