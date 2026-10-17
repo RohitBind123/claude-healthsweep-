@@ -331,8 +331,25 @@ function buildContext(a, extra) {
   ].filter(Boolean).join('\n');
 }
 
+// Single-quote a value for a POSIX shell.
+function shq(v) {
+  return `'${String(v).replace(/'/g, "'\\''")}'`;
+}
+
+// Finding text comes from agents that read untrusted code. Neutralise the <<< >>> block
+// delimiters our prompts use, strip newlines from one-line fields, and cap sizes.
+function inert(text, max) {
+  const t = String(text ?? '').replace(/<<</g, '‹‹‹').replace(/>>>/g, '›››');
+  return t.length > max ? `${t.slice(0, max)}\n[... truncated ${t.length - max} chars]` : t;
+}
+const oneLine = (text, max) => inert(String(text ?? '').replace(/[\r\n]+/g, ' '), max);
+
 function findingVars(context, f) {
-  return { context, id: f.id, severity: f.severity, category: f.category, title: f.title, file: f.file, line: f.line, evidence: f.evidence, rationale: f.rationale || '(none)' };
+  return {
+    context, id: f.id, severity: f.severity, category: f.category,
+    title: oneLine(f.title, 300), file: oneLine(f.file, 400), line: f.line,
+    evidence: inert(f.evidence, 8000), rationale: inert(f.rationale || '(none)', 3000),
+  };
 }
 
 // Cost proportional to risk: HIGH and CRITICAL get two independent lenses, the rest one.
@@ -350,7 +367,7 @@ function isConfirmed(verdicts) {
 // so the agent only works inside it. Workflow agents create and remove it themselves.
 function fixVars(a, f, verdicts, context, worktreeReady = false) {
   const worktree = `${a.runDir}/wt/${f.id}`;
-  const setup = a.worktreeSetup ? a.worktreeSetup.replace(/\{repoRoot\}/g, a.repoRoot) : '';
+  const setup = a.worktreeSetup ? a.worktreeSetup.replace(/\{repoRoot\}/g, shq(a.repoRoot)) : '';
   const benchStep = f.category !== 'latency' ? '' : (a.benchChecks && a.benchChecks.length
     ? `7. Run the benchmark before and after: ${JSON.stringify(a.benchChecks)}. Report the real numbers.`
     : '7. There is no benchmark. Do not claim any speed-up; say "unmeasured" in notes.');
@@ -361,10 +378,10 @@ function fixVars(a, f, verdicts, context, worktreeReady = false) {
     startSha: a.startSha,
     setupSteps: worktreeReady
       ? `1-2. The worktree is ready at ${worktree} (at commit ${a.startSha}, setup done). Work only inside it; it is your current directory.`
-      : `1. git -C ${a.repoRoot} worktree add --detach ${worktree} ${a.startSha}\n2. cd ${worktree}${setup ? ` && ${setup}` : ''}`,
+      : `1. git -C ${shq(a.repoRoot)} -c core.hooksPath=/dev/null worktree add --detach ${shq(worktree)} ${a.startSha}\n2. cd ${shq(worktree)}${setup ? ` && ${setup}` : ''}`,
     cleanupStep: worktreeReady
       ? '9. Leave the worktree in place; the caller removes it.'
-      : `9. Remove the worktree: git -C ${a.repoRoot} worktree remove --force ${worktree}`,
+      : `9. Remove the worktree: git -C ${shq(a.repoRoot)} worktree remove --force ${shq(worktree)}`,
     checks: JSON.stringify(a.checks || []),
     benchStep,
     verification: verdicts.map((v) => `- ${v.reasoning}${v.reproduction ? `\n  reproduction: ${v.reproduction}` : ''}`).join('\n'),
@@ -375,14 +392,51 @@ function reviewVars(context, f, fix) {
   return { ...findingVars(context, f), diff: fix.diff, testsBefore: String(fix.testsBefore).slice(-1500), testsAfter: String(fix.testsAfter).slice(-1500), notes: fix.notes || '' };
 }
 
-// The recommendation never upgrades past what the evidence supports.
-function recommend(finding, confirmed, fix, review) {
-  if (!confirmed) return 'dropped';
-  if (!fix || fix.status !== 'fixed' || !String(fix.diff || '').trim()) return 'manual-review';
+// Files whose change can run code at test or build time, or change how the project builds.
+const RISKY = [
+  /(^|\/)package(-lock)?\.json$/, /(^|\/)(yarn\.lock|pnpm-lock\.yaml|bun\.lockb?|Cargo\.lock|poetry\.lock|go\.sum|Gemfile\.lock|composer\.lock)$/,
+  /(^|\/)(Makefile|Dockerfile|Justfile|Rakefile|conftest\.py|setup\.py|setup\.cfg|pyproject\.toml|tox\.ini|noxfile\.py|go\.mod|Cargo\.toml|build\.gradle(\.kts)?|pom\.xml|Gemfile)$/,
+  /(^|\/)docker-compose[^/]*\.ya?ml$/, /(^|\/)[^/]*\.config\.[cm]?[jt]s$/, /(^|\/)(tsconfig[^/]*\.json|babel\.config\.[^/]+)$/,
+  /(^|\/)\.github\//, /(^|\/)\.gitlab-ci\.yml$/, /(^|\/)\.[^/]+$/, /\.(sh|bash|zsh|ps1|bat|cmd)$/,
+];
+function riskyFiles(files) {
+  return (files || []).filter((f) => RISKY.some((re) => re.test(f)));
+}
+
+function unsafeDiff(diff) {
+  return /^(new file mode 120000|deleted file mode 120000|old mode |new mode )/m.test(String(diff || ''));
+}
+
+const isTestPath = (f) => /(^|\/)(tests?|__tests__|spec)(\/|$)|\.(test|spec)\.[^/]+$|_test\.[^/]+$|(^|\/)test_[^/]+$/.test(f);
+function outOfScope(files, findingFile) {
+  const dir = String(findingFile || '').includes('/') ? String(findingFile).replace(/\/[^/]*$/, '/') : '';
+  return (files || []).filter((f) => !(dir ? f.startsWith(dir) : !f.includes('/')) && !isTestPath(f));
+}
+
+// The recommendation never upgrades past what the evidence supports; reasons say why.
+function assess(finding, confirmed, fix, review) {
+  if (!confirmed) return { recommendation: 'dropped', reasons: ['not confirmed by every verifier'] };
+  if (fix && fix.status === 'tampered') return { recommendation: 'reject', reasons: [fix.notes || 'the fixer changed git hooks or git config'] };
+  if (!fix || fix.status !== 'fixed' || !String(fix.diff || '').trim()) {
+    return { recommendation: 'manual-review', reasons: [fix ? `fixer status ${fix.status}${fix.notes ? `: ${fix.notes}` : ''}` : 'no fix drafted'] };
+  }
+  if (unsafeDiff(fix.diff)) return { recommendation: 'reject', reasons: ['the patch creates a symlink or changes file modes'] };
+  const reasons = [];
   let r = review ? review.verdict : 'manual-review';
-  if (review && review.behaviourChange && r === 'propose') r = 'manual-review';
-  if (finding.category === 'latency' && !(fix.benchBefore && fix.benchAfter) && r === 'propose') r = 'manual-review';
-  return r;
+  if (!review) reasons.push('no reviewer verdict');
+  if (review && review.behaviourChange) reasons.push('reviewer: changes behaviour callers rely on');
+  const risky = riskyFiles(fix.filesChanged);
+  if (risky.length) reasons.push(`touches build/CI/config files: ${risky.join(', ')}`);
+  const oos = outOfScope(fix.filesChanged, finding.file);
+  if (oos.length) reasons.push(`changes files outside the finding's folder: ${oos.join(', ')}`);
+  if (fix.mechanical && fix.mechanical.regressed) reasons.push(`checks regressed in the worktree: ${(fix.mechanical.reasons || []).join('; ')}`);
+  if (finding.category === 'latency' && !(fix.benchBefore && fix.benchAfter)) reasons.push('latency change without benchmark numbers');
+  if (r === 'propose' && reasons.length) r = 'manual-review';
+  return { recommendation: r, reasons };
+}
+
+function recommend(finding, confirmed, fix, review) {
+  return assess(finding, confirmed, fix, review).recommendation;
 }
 const render = (name, vars) => renderPrompt(PROMPTS, name, vars)
 

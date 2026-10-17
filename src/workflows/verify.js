@@ -42,7 +42,8 @@ const results = await pipeline(
     const review = needsReview
       ? await agent(render('reviewer', reviewVars(context, v.finding, v.fix)), { label: `review:${v.finding.id}`, phase: 'Review', schema: SCHEMAS.review })
       : null
-    return { ...v, review, recommendation: recommend(v.finding, v.confirmed, v.fix, review) }
+    const { recommendation, reasons } = assess(v.finding, v.confirmed, v.fix, review)
+    return { ...v, review, recommendation, reasons }
   },
 )
 

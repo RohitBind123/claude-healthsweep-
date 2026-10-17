@@ -133,10 +133,18 @@ path, and end the run.
 - Mode A: `Workflow({ name: "healthsweep:verify", args: { repoRoot, runDir, startSha, findings,
   groundTruth, activeWork, checks, benchChecks, worktreeSetup, notes } })`, then Write the result to
   `<runDir>/verify.json`.
-- Mode B: `HS fanout verify --run <runDir> [--ids HS-001,HS-004 | --threshold HIGH]`.
+- Mode B: `HS fanout verify --run <runDir> [--ids HS-001,HS-004 | --threshold HIGH] [--allow-write]`.
+  Without `--allow-write` only the verifiers run and no fix is drafted. Before adding it, show the user
+  the agent's exact `writeCommand` and say plainly: the fixer can edit files and run commands; it works
+  in a throwaway worktree, not a sandbox. Add the flag only on an explicit yes. The configured checks
+  then run inside each fixer's worktree and are compared with the baseline, so a fix that breaks a
+  check cannot be proposed.
 
-Each result has a `recommendation`: `propose`, `manual-review`, `reject` (the patch is wrong; show
-it, never offer to apply it) or `dropped` (false positive or not fixable). Nothing is applied yet.
+Each result has a `recommendation`: `propose`, `manual-review`, `reject` (the patch is wrong, makes a
+symlink or mode change, or the fixer touched git hooks; show it, never offer to apply it) or
+`dropped` (false positive or not fixable), plus `reasons`. A patch that touches build, CI, lockfile or
+dotfiles, or files outside the finding's folder, is always `manual-review`: say which files and why
+they matter (they can run code at test time). Nothing is applied yet.
 
 ## Step 7. Approval, one fix at a time
 

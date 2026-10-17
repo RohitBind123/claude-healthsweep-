@@ -148,7 +148,7 @@ test('fanout scan and verify run through a configured headless agent', () => {
   const scan = run('fanout', 'scan', '--run', runDir);
   assert.equal(scan.json.findings, 1);
   run('consolidate', '--run', runDir, '--tier2', join(runDir, 'tier2.json'));
-  const ver = run('fanout', 'verify', '--run', runDir, '--threshold', 'HIGH');
+  const ver = run('fanout', 'verify', '--run', runDir, '--threshold', 'HIGH', '--allow-write');
   assert.equal(ver.json.tally.propose, 1);
   const rep = run('report', '--run', runDir);
   assert.match(readFileSync(rep.json.report, 'utf8'), /\| propose \|/);

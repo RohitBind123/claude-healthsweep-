@@ -261,9 +261,19 @@ async function cmdFanout(f) {
     const findings = ids ? doc.findings.filter((x) => ids.includes(x.id)) : aboveThreshold(doc.findings, f.threshold ?? run.config.costGate.threshold);
     const checks = run.config.checks.filter((c) => c.kind !== 'bench').map(({ name, cmd, cwd, timeoutSec }) => ({ name, cmd, cwd, timeoutSec }));
     const benchChecks = run.config.checks.filter((c) => c.kind === 'bench').map(({ name, cmd, cwd, timeoutSec }) => ({ name, cmd, cwd, timeoutSec }));
-    const res = await verifyFanout({ a: { ...base, startSha: run.startSha, findings, checks, benchChecks, worktreeSetup: run.config.worktreeSetup }, prompts, schemas, agent, log: err });
+    const baselinePath = join(run.runDir, 'checks-baseline.json');
+    const res = await verifyFanout({
+      a: {
+        ...base, startSha: run.startSha, findings, checks, benchChecks, worktreeSetup: run.config.worktreeSetup,
+        allowWrite: Boolean(f['allow-write']),
+        checkConfigs: run.config.checks.filter((c) => c.kind !== 'bench'),
+        baseline: existsSync(baselinePath) ? readJson(baselinePath) : null,
+        benchTolerancePct: run.config.benchTolerancePct,
+      },
+      prompts, schemas, agent, log: err,
+    });
     writeFileSync(join(run.runDir, 'verify.json'), JSON.stringify(res, null, 2));
-    return out({ ok: true, stage, file: join(run.runDir, 'verify.json'), verified: res.results.length, tally: res.tally, errors: res.errors });
+    return out({ ok: true, stage, file: join(run.runDir, 'verify.json'), verified: res.results.length, tally: res.tally, errors: res.errors, fixerRan: Boolean(f['allow-write']) });
   }
   throw new Error('usage: fanout <scan|verify> --run <dir> [--preset name] [--modules file] [--ids a,b | --threshold T]');
 }
