@@ -186,6 +186,13 @@ Because a fix that passes tests can still change behaviour someone relies on. Th
 already flags behaviour changes and missing evidence as `manual-review`, but the final call on what
 lands in your code is yours, one fix at a time.
 
+**Which coding agents does it work with?**
+Any agent that reads SKILL.md folders: Claude Code, Codex CLI, Cursor, Gemini CLI, GitHub Copilot and
+OpenCode, among others. Claude Code gets dynamic workflows and Tier 3. Elsewhere, independent
+verification runs through a headless agent CLI (one fresh process per task). The `claude` and `codex`
+presets are smoke-tested; the others follow each tool's documented headless flags. See
+[docs/agents.md](docs/agents.md).
+
 **Does it work without the Claude Security plugin?**
 Yes. Tier 3 is skipped and the skill says so. Tier 1, Tier 2 (which includes its own security review
 of the branch diff when you pass `--base`) and the verify stage all run.
