@@ -12,7 +12,7 @@ expensive fan-out work and never change the user's files.
 
 The CLI that does the deterministic work (prints one JSON object per command):
 
-```
+```bash
 HS="node ${CLAUDE_PLUGIN_ROOT}/scripts/healthsweep.mjs"
 ```
 
@@ -110,8 +110,9 @@ activeWork, checks, benchChecks, worktreeSetup, notes } })`.
 `benchChecks` = kind bench; `worktreeSetup` from the config. Write the result to
 `<runDir>/verify.json`.
 
-Each result has `recommendation`: `propose`, `manual-review` or `dropped` (false positive or not
-fixable). Nothing has been applied yet.
+Each result has `recommendation`: `propose`, `manual-review`, `reject` (the reviewer found the patch
+wrong; show it, never offer to apply it) or `dropped` (false positive or not fixable). Nothing has been
+applied yet.
 
 ## Step 7. Approval, one fix at a time
 
