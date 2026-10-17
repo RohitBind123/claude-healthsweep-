@@ -59,16 +59,25 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # npm provenance
+      id-token: write # npm Trusted Publishing (OIDC); also signs provenance
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - name: Publish to npm (skipped when the NPM_TOKEN secret is not set)
+      # Trusted Publishing needs npm 11.5.1 or later; Node 22 ships npm 10.
+      - name: Install an npm that supports Trusted Publishing
+        run: npm install -g npm@11.21.0
+      - name: Publish to npm
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then echo "::warning::NPM_TOKEN not set; skipping npm publish"; exit 0; fi
-          npm publish --provenance --access public --ignore-scripts
+          version="${TAG#v}"
+          if npm view "healthsweep@$version" version >/dev/null 2>&1; then
+            echo "::notice::healthsweep@$version is already on npm; nothing to publish"
+            exit 0
+          fi
+          # No token: npm exchanges this job's GitHub OIDC token for a short-lived publish token.
+          # The package's Trusted Publisher on npmjs.com must name this repository and release.yml.
+          npm publish --access public --ignore-scripts
