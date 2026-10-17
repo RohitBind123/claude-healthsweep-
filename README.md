@@ -13,6 +13,7 @@
 <p>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/github/license/RohitBind123/claude-healthsweep-"></a>
   <a href="https://github.com/RohitBind123/claude-healthsweep-/releases"><img alt="Release" src="https://img.shields.io/github/v/release/RohitBind123/claude-healthsweep-?include_prereleases&sort=semver"></a>
+  <a href="https://www.npmjs.com/package/healthsweep"><img alt="npm" src="https://img.shields.io/npm/v/healthsweep"></a>
   <a href="https://github.com/RohitBind123/claude-healthsweep-/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/RohitBind123/claude-healthsweep-/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/RohitBind123/claude-healthsweep-/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/RohitBind123/claude-healthsweep-?style=flat"></a>
   <a href="https://docs.claude.com/en/docs/claude-code/plugins"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-D97757"></a>

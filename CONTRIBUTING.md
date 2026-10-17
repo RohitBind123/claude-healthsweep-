@@ -75,5 +75,28 @@ Before opening a pull request:
 3. Add an entry under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md) for user-visible changes.
 4. Fill in the pull request template, including how you tested.
 
+## Releasing (maintainers)
+
+Releases come only from a version tag. Nobody publishes to npm by hand.
+
+1. Bump `version` in `package.json`, `.claude-plugin/plugin.json` and the `version` field in
+   `skills/healthsweep/SKILL.md`, and the pinned `healthsweep@<version>` examples in `README.md` and
+   `docs/agents.md`.
+2. Move the `[Unreleased]` entries in `CHANGELOG.md` under a new `## [x.y.z] - YYYY-MM-DD` heading.
+3. `npm run check` passes. Commit and push to `main`, and wait for CI to pass.
+4. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+The release workflow (`.github/workflows/release.yml`) then:
+
+- fails if the tag does not match `package.json`, and runs `npm run check`;
+- creates the GitHub release with the notes from `CHANGELOG.md` and the package tarball attached;
+- publishes to npm with [Trusted Publishing](https://docs.npmjs.com/trusted-publishers): npm accepts
+  the job's GitHub OIDC token, so there is no `NPM_TOKEN` secret, and the package gets a signed
+  provenance statement. A version that is already on npm is skipped, so re-running a release is safe.
+
+Trusted Publishing works only while the package's npm settings name this repository and the
+`release.yml` workflow (npmjs.com, package Settings, Trusted Publisher). If you rename the repository
+or the workflow file, update that setting first, or the publish step fails.
+
 By contributing you agree that your contributions are licensed under the [MIT License](LICENSE) and
 that you will follow the [Code of Conduct](CODE_OF_CONDUCT.md).

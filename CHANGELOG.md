@@ -11,6 +11,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The release workflow publishes to npm with Trusted Publishing (GitHub OIDC) instead of an
   `NPM_TOKEN` secret, and skips a version that is already on npm.
+- Docs: release steps for maintainers (CONTRIBUTING.md), how to verify a release's provenance
+  (SECURITY.md), and an npm badge in the README.
 
 ## [0.2.1] - 2026-10-17
 

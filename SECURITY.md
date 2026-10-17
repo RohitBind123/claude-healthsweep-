@@ -13,6 +13,14 @@ version and noted in the [changelog](CHANGELOG.md).
 
 Only the latest release receives security fixes.
 
+## Verifying a release
+
+From 0.2.2 on, every npm version is published by this repository's release workflow through npm
+Trusted Publishing, with no long-lived token, and carries a signed provenance statement that links it
+to the exact commit and workflow run. Check it with `npm audit signatures` in a project that depends on
+`healthsweep`, or on the package's npm page. 0.2.1 was published by hand and has no provenance. The
+same tarball is attached to each [GitHub release](https://github.com/RohitBind123/claude-healthsweep-/releases).
+
 ## Trust model
 
 healthsweep is not a sandbox. Know what it does before you run it:
