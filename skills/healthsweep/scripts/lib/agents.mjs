@@ -19,8 +19,8 @@ export const AGENT_PRESETS = Object.freeze({
   },
   codex: {
     bin: 'codex',
-    command: 'codex exec -s read-only -a never --skip-git-repo-check --ephemeral -',
-    writeCommand: 'codex exec -s workspace-write -a never --skip-git-repo-check --ephemeral -',
+    command: 'codex exec -s read-only --skip-git-repo-check --ephemeral -',
+    writeCommand: 'codex exec -s workspace-write --skip-git-repo-check --ephemeral -',
   },
   cursor: {
     bin: 'agent',

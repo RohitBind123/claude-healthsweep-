@@ -7,12 +7,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-17
+
 ### Added
 
-- README, architecture, configuration and evidence-log docs, an example config, banners and a demo
-  recording script.
+- Works with any coding agent that reads SKILL.md folders: Codex CLI, Cursor, Gemini CLI, GitHub
+  Copilot, OpenCode, as well as Claude Code.
+- `fanout scan` and `fanout verify`: run every finder, verifier, fixer and reviewer as a fresh headless
+  agent process (presets for claude, codex, cursor, gemini, copilot, opencode, or your own command),
+  so verification stays independent on agents without sub-agents.
+- `install`: put the skill where each agent looks (`npx github:RohitBind123/claude-healthsweep- install --agent <name>`).
+- `report`: deterministic REPORT.md, including report-only runs and near-duplicate groups.
+- `prompt` and `agents` commands.
+- README, architecture, configuration, evidence-log and agents docs, an example config, banners and a
+  demo recording script.
 - Community files, CI (tests, manifest checks, markdownlint, link check) and a tag-driven release
   workflow.
+
+### Changed
+
+- The skill folder is self-contained: CLI, prompts and schemas live in `skills/healthsweep/`.
+- Prompts and JSON schemas are plain files shared by every mode; `workflows/*.js` are generated
+  from `src/workflows/` (`npm run build`).
+- The fixer worktree is created and removed by the CLI in Mode B, and the diff comes from git.
+
+### Fixed
+
+- Test-runner output is decoded as a stream, and failing-test names are normalised, so a split
+  multi-byte character or jest's duplicated summary no longer looks like a new failure.
+- The check runner waits for its log file to flush before it returns.
 
 ## [0.1.0] - 2026-10-17
 
