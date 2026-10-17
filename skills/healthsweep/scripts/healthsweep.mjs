@@ -19,6 +19,7 @@ import { loadPrompts, loadSchemas } from './lib/prompts.mjs';
 import { renderPrompt } from './lib/shared.mjs';
 import { AGENT_PRESETS, resolveAgent } from './lib/agents.mjs';
 import { scanFanout, verifyFanout } from './lib/fanout.mjs';
+import { commandSurface, fingerprint, isTrusted, trust } from './lib/trust.mjs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -72,11 +73,36 @@ function cmdInit(f) {
   });
 }
 
+function untrusted(repoRoot, configPath, config) {
+  return {
+    ok: false, reason: 'untrusted-config', repoRoot, configPath, fingerprint: fingerprint(config),
+    commands: commandSurface(config),
+    next: 'Show the user every command above verbatim. Only if they approve, run: trust --repo <repo> [--config <file>].',
+  };
+}
+
+function requireTrusted(run) {
+  if (!isTrusted({ home: homedir(), repoRoot: run.repoRoot, config: run.config })) {
+    throw new Error('this run\'s config is not trusted (or changed since it was trusted); run preflight again');
+  }
+}
+
+// Record the user's approval of exactly these commands for this repository.
+function cmdTrust(f) {
+  const repoRoot = resolve(git(resolve(f.repo ?? '.'), ['rev-parse', '--show-toplevel']));
+  const configPath = resolveConfigPath({ repoRoot, home: homedir(), explicit: f.config });
+  if (!configPath) return out({ ok: false, reason: 'no-config' });
+  const config = loadConfig(configPath);
+  const file = trust({ home: homedir(), repoRoot, config });
+  return out({ ok: true, trusted: file, fingerprint: fingerprint(config), commands: commandSurface(config) });
+}
+
 function cmdPreflight(f) {
   const repoRoot = resolve(git(resolve(f.repo ?? '.'), ['rev-parse', '--show-toplevel']));
   const configPath = resolveConfigPath({ repoRoot, home: homedir(), explicit: f.config });
   if (!configPath) return out({ ok: false, reason: 'no-config' });
   const config = loadConfig(configPath);
+  if (!isTrusted({ home: homedir(), repoRoot, config })) return out(untrusted(repoRoot, configPath, config));
   const dirty = git(repoRoot, ['status', '--porcelain']);
   const branch = git(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD']);
   const head = git(repoRoot, ['rev-parse', 'HEAD']);
@@ -98,6 +124,7 @@ function cmdPreflight(f) {
 
 async function cmdChecks(f) {
   const run = loadRun(f.run);
+  requireTrusted(run);
   const label = f.label ?? 'baseline';
   const changed = f.files ? String(f.files).split(',').filter(Boolean) : null;
   const checks = changed
@@ -214,8 +241,10 @@ function cmdAgents() {
 // Scan or verify through any headless coding agent (one fresh process per task).
 async function cmdFanout(f) {
   const run = loadRun(f.run);
+  requireTrusted(run);
   const stage = f._[0];
-  const agent = resolveAgent(f.preset ? { ...(run.config.agent ?? {}), preset: f.preset, command: undefined, writeCommand: undefined } : run.config.agent);
+  // The agent comes only from the trusted config: a command-line override would bypass trust.
+  const agent = resolveAgent(run.config.agent);
   if (f.concurrency) agent.concurrency = Number(f.concurrency);
   const prompts = loadPrompts(join(SKILL_DIR, 'prompts'));
   const schemas = loadSchemas(join(SKILL_DIR, 'schemas'));
@@ -239,7 +268,7 @@ async function cmdFanout(f) {
   throw new Error('usage: fanout <scan|verify> --run <dir> [--preset name] [--modules file] [--ids a,b | --threshold T]');
 }
 
-const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, compare: cmdCompare, consolidate: cmdConsolidate, log: cmdLog, report: cmdReport, prompt: cmdPrompt, agents: cmdAgents, fanout: cmdFanout };
+const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, compare: cmdCompare, consolidate: cmdConsolidate, log: cmdLog, report: cmdReport, prompt: cmdPrompt, agents: cmdAgents, fanout: cmdFanout, trust: cmdTrust };
 
 async function main() {
   const { command, flags } = parseArgs(process.argv.slice(2));

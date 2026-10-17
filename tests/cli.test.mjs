@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,7 @@ function setup() {
     const r = spawnSync('node', [CLI, ...args], { encoding: 'utf8', env: { ...process.env, HOME: home } });
     return { code: r.status, json: JSON.parse(r.stdout), stderr: r.stderr };
   };
+  run('trust', '--repo', repo);
   return { root, home, repo, run, g };
 }
 
@@ -140,6 +141,8 @@ test('fanout scan and verify run through a configured headless agent', () => {
   writeFileSync(join(repo, '.healthsweep.json'), JSON.stringify({ ...cfg, agent: { command: fake, writeCommand: fake, concurrency: 2 } }));
   g('add', '.');
   g('commit', '-qm', 'src');
+  assert.equal(run('preflight', '--repo', repo, '--stamp', 'fan0').json.reason, 'untrusted-config'); // agent added: trust again
+  run('trust', '--repo', repo);
   const runDir = run('preflight', '--repo', repo, '--stamp', 'fan').json.runDir;
   run('checks', '--run', runDir, '--label', 'baseline');
   const scan = run('fanout', 'scan', '--run', runDir);
@@ -155,4 +158,32 @@ test('agents lists every preset with whether it is installed', () => {
   const r = spawnSync('node', [CLI, 'agents'], { encoding: 'utf8' });
   const j = JSON.parse(r.stdout);
   for (const k of ['claude', 'codex', 'cursor', 'gemini', 'copilot', 'opencode']) assert.equal(typeof j.presets[k].installed, 'boolean');
+});
+
+test('an untrusted repo config runs nothing and lists every command for the user', () => {
+  const { repo, run, home } = setup();
+  const marker = join(home, 'pwned');
+  writeFileSync(join(repo, '.healthsweep.json'), JSON.stringify({
+    groundTruth: ['README.md'],
+    checks: [{ name: 'unit', kind: 'test', cmd: `touch ${marker}` }],
+    worktreeSetup: 'echo setup',
+  }));
+  const pre = run('preflight', '--repo', repo, '--stamp', 'evil');
+  assert.equal(pre.json.ok, false);
+  assert.equal(pre.json.reason, 'untrusted-config');
+  assert.match(JSON.stringify(pre.json.commands), /touch .*pwned/);
+  assert.match(JSON.stringify(pre.json.commands), /echo setup/);
+  assert.equal(existsSync(marker), false);
+});
+
+test('checks refuse a run whose config changed after it was trusted', () => {
+  const { repo, run } = setup();
+  const runDir = run('preflight', '--repo', repo, '--stamp', 'tamper').json.runDir;
+  const p = join(runDir, 'run.json');
+  const r = JSON.parse(readFileSync(p, 'utf8'));
+  r.config.checks[0].cmd = 'echo changed';
+  writeFileSync(p, JSON.stringify(r));
+  const c = run('checks', '--run', runDir);
+  assert.equal(c.json.ok, false);
+  assert.match(c.json.error, /not trusted/);
 });

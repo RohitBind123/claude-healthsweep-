@@ -82,6 +82,12 @@ No benchmark check? Tell the user once that latency findings will be manual-revi
 
 Run `HS preflight --repo <path> [--base <branch>] [--config <file>]`.
 
+- `reason: untrusted-config`: the config's commands have never been approved for this repository, or
+  they changed. A config is code, and one committed to a repository may come from someone else.
+  Show the user EVERY entry in `commands` verbatim: each check's `cmd`, `cwd` and `env`,
+  `worktreeSetup`, the agent `command` and `writeCommand`, and `notes`. Ask whether to trust exactly
+  these. Only on an explicit yes, run `HS trust --repo <path> [--config <file>]` and then preflight
+  again. Never run `trust` on your own judgement.
 - `reason: dirty-tree`: STOP. Show `dirty`. Ask: stop here, or the user cleans up and you re-run, or
   sweep a separate clean worktree at HEAD (`git worktree add --detach <dir> HEAD`, then preflight with
   `--repo <dir>`). Never touch the dirty files.
