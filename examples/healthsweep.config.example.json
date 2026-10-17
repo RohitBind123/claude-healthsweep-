@@ -1,0 +1,51 @@
+{
+  "groundTruth": ["README.md", "docs/SPEC.md"],
+  "activeWork": ["docs/current-sprint.md"],
+  "scope": ["src/payments", "src/quotes"],
+  "exclude": ["src/legacy"],
+  "notes": "TypeScript API on Node 20 with PostgreSQL. Money is stored as integer cents.",
+  "checks": [
+    {
+      "name": "unit-payments",
+      "kind": "test",
+      "cmd": "npx jest src/payments",
+      "cwd": "backend",
+      "timeoutSec": 900,
+      "scope": ["backend/src/payments/**"]
+    },
+    {
+      "name": "unit-quotes",
+      "kind": "test",
+      "cmd": "npx jest src/quotes",
+      "cwd": "backend",
+      "timeoutSec": 900,
+      "scope": ["backend/src/quotes/**"]
+    },
+    {
+      "name": "typecheck",
+      "kind": "lint",
+      "cmd": "npx tsc --noEmit",
+      "cwd": "backend",
+      "timeoutSec": 600
+    },
+    {
+      "name": "build",
+      "kind": "build",
+      "cmd": "npm run build",
+      "cwd": "backend",
+      "timeoutSec": 900
+    },
+    {
+      "name": "bench-quote",
+      "kind": "bench",
+      "cmd": "node bench/quote.mjs",
+      "cwd": "backend",
+      "metricRegex": "p95=([\\d.]+)ms",
+      "timeoutSec": 300
+    }
+  ],
+  "worktreeSetup": "ln -s {repoRoot}/backend/node_modules backend/node_modules",
+  "costGate": { "threshold": "MEDIUM" },
+  "benchTolerancePct": 10,
+  "tier3": { "enabled": true, "effort": "medium" }
+}
