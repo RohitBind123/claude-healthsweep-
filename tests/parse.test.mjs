@@ -4,7 +4,7 @@ import { parseTestOutput } from '../scripts/lib/parse.mjs';
 
 test('jest summary with failures', () => {
   const out = [
-    '  ● quotes › calculatePremium › locks the row',
+    '  ● jobs › claimJob › locks the row',
     '',
     'Tests:       2 failed, 1 skipped, 40 passed, 43 total',
   ].join('\n');
@@ -14,7 +14,7 @@ test('jest summary with failures', () => {
   assert.equal(r.failed, 2);
   assert.equal(r.skipped, 1);
   assert.equal(r.total, 43);
-  assert.deepEqual(r.failures, ['quotes › calculatePremium › locks the row']);
+  assert.deepEqual(r.failures, ['jobs › claimJob › locks the row']);
 });
 
 test('jest repeats failure headers in its summary; names are listed once', () => {

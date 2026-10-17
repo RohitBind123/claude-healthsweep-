@@ -25,9 +25,9 @@
 
 ## Why
 
-A production bug charged an insurance quote the price of a different plan than the one on screen.
-Two things lined up: overlapping requests raced each other, and the server trusted a stored total
-without checking it against the plan. Tests passed. Code review passed. Customers did not.
+The bugs that hurt most in production are rarely the ones a linter or a unit test catches. Two
+requests overlap and the slower one wins. A value is saved in one place and recomputed in another,
+and nothing checks that the two still agree. Tests pass, code review passes, and the defect ships.
 healthsweep is built to catch that class of bug earlier: one finder looks only at concurrency and
 data consistency, and a separate agent that did not write the finding has to reproduce it before
 anyone drafts a fix.
@@ -52,7 +52,7 @@ git working tree:
 Common options:
 
 ```text
-/healthsweep --scope src/payments,src/quotes --threshold HIGH
+/healthsweep --scope src/api,src/core --threshold HIGH
 /healthsweep --base main            # also security-review the branch diff against main
 /healthsweep --no-tier3             # skip the Claude Security plugin scan
 /healthsweep --config path/to/healthsweep.json

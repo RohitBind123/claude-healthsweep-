@@ -13,18 +13,18 @@ test('dots are literal', () => {
 });
 
 test('a directory prefix matches everything under it', () => {
-  assert.ok(matchesAny('src/payments/x.ts', ['src/payments/']));
-  assert.ok(!matchesAny('src/paymentsX/x.ts', ['src/payments/']));
+  assert.ok(matchesAny('src/api/x.ts', ['src/api/']));
+  assert.ok(!matchesAny('src/apiX/x.ts', ['src/api/']));
 });
 
 test('selectScopedChecks picks checks whose scope covers a changed file', () => {
   const checks = [
-    { name: 'pay', kind: 'test', scope: ['src/payments/**'] },
-    { name: 'quotes', kind: 'test', scope: ['src/quotes/**'] },
+    { name: 'api', kind: 'test', scope: ['src/api/**'] },
+    { name: 'core', kind: 'test', scope: ['src/core/**'] },
     { name: 'build', kind: 'build' },
   ];
-  const picked = selectScopedChecks(checks, ['src/payments/a.ts']).map((c) => c.name);
-  assert.deepEqual(picked, ['pay', 'build']);
+  const picked = selectScopedChecks(checks, ['src/api/a.ts']).map((c) => c.name);
+  assert.deepEqual(picked, ['api', 'build']);
 });
 
 test('a test check without scope always runs as scoped (cannot prove it is unaffected)', () => {

@@ -10,14 +10,14 @@ Where it is read from, first match wins:
 {
   "groundTruth": ["README.md", "docs/SPEC.md"],
   "activeWork": ["docs/current-sprint.md"],
-  "scope": ["src/payments", "src/quotes"],
+  "scope": ["src/api", "src/core"],
   "exclude": ["src/legacy"],
-  "notes": "NestJS + Prisma. Money is stored in AED with two decimals.",
+  "notes": "TypeScript service on Node 20 with PostgreSQL. All timestamps are UTC.",
   "checks": [
-    { "name": "unit-payments", "kind": "test", "cmd": "npx jest src/payments", "cwd": "backend", "timeoutSec": 900, "scope": ["backend/src/payments/**"] },
+    { "name": "unit-api", "kind": "test", "cmd": "npx jest src/api", "cwd": "backend", "timeoutSec": 900, "scope": ["backend/src/api/**"] },
     { "name": "typecheck", "kind": "lint", "cmd": "npx tsc --noEmit", "cwd": "backend", "timeoutSec": 600 },
     { "name": "build", "kind": "build", "cmd": "npm run build", "cwd": "backend", "timeoutSec": 900 },
-    { "name": "bench-quote", "kind": "bench", "cmd": "node bench/quote.mjs", "metricRegex": "p95=([\\d.]+)ms", "timeoutSec": 300 }
+    { "name": "bench-api", "kind": "bench", "cmd": "node bench/api.mjs", "metricRegex": "p95=([\\d.]+)ms", "timeoutSec": 300 }
   ],
   "worktreeSetup": "ln -s {repoRoot}/backend/node_modules backend/node_modules",
   "costGate": { "threshold": "MEDIUM" },

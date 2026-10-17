@@ -40,43 +40,45 @@ test output before and after. Each entry is committed together with its fix, so 
 file always agree. This log raises confidence; it is not a proof that nothing broke.
 
 
-## 2026-10-17 · HS-002 · HIGH · bug · Premium total trusted from stored quote, not recomputed from the selected plan
+## 2026-10-17 · HS-002 · HIGH · bug · Two workers can claim the same job (read, then update without a guard)
 
-**Where:** `src/quotes/checkout.ts:57`  
+**Where:** `src/jobs/claim.ts:31`  
 **Approved by:** user  
 **Commit:** `3f9c2ab`
 
 **Finding evidence (before):**
 
 ```
-55  const quote = await repo.getQuote(quoteId);
-56  const plan = await repo.getPlan(input.planId);
-57  const amount = quote.totalPremium; // stored by the last calculate call
+29  const job = await db.jobs.findFirst({ where: { status: 'queued' } });
+30  if (!job) return null;
+31  await db.jobs.update({ where: { id: job.id }, data: { status: 'running', workerId } });
 ```
 
-**Independent verification:** Reproduced with two overlapping calculate calls for plan A then plan B: the slower response for plan A wrote totalPremium last, and checkout charged plan A while the screen showed plan B. Nothing re-checks the stored total against plan.id before charging.
+**Independent verification:** Reproduced with two workers polling at the same moment: both read the same queued row before either update ran, so the job ran twice. Nothing in the update checks that the row is still queued.
 
 **Change (before -> after):**
 
 ```diff
-diff --git a/src/quotes/checkout.ts b/src/quotes/checkout.ts
---- a/src/quotes/checkout.ts
-+++ b/src/quotes/checkout.ts
-@@ -54,7 +54,10 @@ export async function checkout(quoteId, input) {
-   const quote = await repo.getQuote(quoteId);
-   const plan = await repo.getPlan(input.planId);
--  const amount = quote.totalPremium; // stored by the last calculate call
-+  if (quote.planId !== plan.id) {
-+    throw new ConflictError("quote total belongs to a different plan; recalculate");
-+  }
-+  const amount = quote.totalPremium;
+diff --git a/src/jobs/claim.ts b/src/jobs/claim.ts
+--- a/src/jobs/claim.ts
++++ b/src/jobs/claim.ts
+@@ -28,6 +28,10 @@ export async function claimJob(db, workerId) {
+   const job = await db.jobs.findFirst({ where: { status: 'queued' } });
+   if (!job) return null;
+-  await db.jobs.update({ where: { id: job.id }, data: { status: 'running', workerId } });
++  const claimed = await db.jobs.updateMany({
++    where: { id: job.id, status: 'queued' },
++    data: { status: 'running', workerId },
++  });
++  if (claimed.count === 0) return null; // another worker won the race
+   return job;
 ```
 
 **Tests before the fix:**
 
 ```
-FAIL src/quotes/checkout.test.ts
-  ● checkout > rejects a total calculated for a different plan
+FAIL src/jobs/claim.test.ts
+  ● claimJob > two concurrent workers never get the same job
 
 Tests:       1 failed, 41 passed, 42 total
 ```
@@ -84,7 +86,7 @@ Tests:       1 failed, 41 passed, 42 total
 **Tests after the fix:**
 
 ```
-PASS src/quotes/checkout.test.ts
+PASS src/jobs/claim.test.ts
 
 Tests:       42 passed, 42 total
 ```

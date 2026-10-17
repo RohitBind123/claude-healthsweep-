@@ -1,25 +1,25 @@
 {
   "groundTruth": ["README.md", "docs/SPEC.md"],
   "activeWork": ["docs/current-sprint.md"],
-  "scope": ["src/payments", "src/quotes"],
+  "scope": ["src/api", "src/core"],
   "exclude": ["src/legacy"],
-  "notes": "TypeScript API on Node 20 with PostgreSQL. Money is stored as integer cents.",
+  "notes": "TypeScript API on Node 20 with PostgreSQL. All timestamps are UTC.",
   "checks": [
     {
-      "name": "unit-payments",
+      "name": "unit-api",
       "kind": "test",
-      "cmd": "npx jest src/payments",
+      "cmd": "npx jest src/api",
       "cwd": "backend",
       "timeoutSec": 900,
-      "scope": ["backend/src/payments/**"]
+      "scope": ["backend/src/api/**"]
     },
     {
-      "name": "unit-quotes",
+      "name": "unit-core",
       "kind": "test",
-      "cmd": "npx jest src/quotes",
+      "cmd": "npx jest src/core",
       "cwd": "backend",
       "timeoutSec": 900,
-      "scope": ["backend/src/quotes/**"]
+      "scope": ["backend/src/core/**"]
     },
     {
       "name": "typecheck",
@@ -36,9 +36,9 @@
       "timeoutSec": 900
     },
     {
-      "name": "bench-quote",
+      "name": "bench-api",
       "kind": "bench",
-      "cmd": "node bench/quote.mjs",
+      "cmd": "node bench/api.mjs",
       "cwd": "backend",
       "metricRegex": "p95=([\\d.]+)ms",
       "timeoutSec": 300

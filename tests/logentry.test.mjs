@@ -4,8 +4,8 @@ import { renderLogEntry, LOG_HEADER } from '../scripts/lib/logentry.mjs';
 
 const entry = {
   date: '2026-10-17',
-  finding: { id: 'HS-003', title: 'Race in calculatePremium', severity: 'HIGH', category: 'bug', file: 'src/q.ts', line: 42, evidence: 'no FOR UPDATE' },
-  verification: 'Verifier reproduced with two parallel calls; final price used the old plan.',
+  finding: { id: 'HS-003', title: 'Race in claimJob', severity: 'HIGH', category: 'bug', file: 'src/q.ts', line: 42, evidence: 'no FOR UPDATE' },
+  verification: 'Verifier reproduced with two parallel workers; both claimed the same job.',
   diff: '--- a/src/q.ts\n+++ b/src/q.ts\n@@\n-old\n+new\n',
   testsBefore: 'Tests: 40 passed, 40 total',
   testsAfter: 'Tests: 41 passed, 41 total',
@@ -15,7 +15,7 @@ const entry = {
 
 test('entry carries id, before/after code and real test output', () => {
   const md = renderLogEntry(entry);
-  assert.match(md, /## 2026-10-17 · HS-003 · HIGH · bug · Race in calculatePremium/);
+  assert.match(md, /## 2026-10-17 · HS-003 · HIGH · bug · Race in claimJob/);
   assert.match(md, /`src\/q\.ts:42`/);
   assert.match(md, /```diff\n--- a\/src\/q\.ts/);
   assert.match(md, /Tests: 40 passed, 40 total/);

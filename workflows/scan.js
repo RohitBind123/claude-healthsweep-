@@ -55,7 +55,7 @@ const LENSES = [
   },
   {
     key: 'consistency',
-    text: 'concurrency and data consistency: races between overlapping requests (check-then-act, read-modify-write without a row lock or transaction), retries that are not idempotent, multi-step writes that can half-complete, two sources of truth for one value (for example a price stored separately from the plan it belongs to), money or status computed from stale state, client state trusted over server state, and caches that can serve a stale value after a write. For each, name the exact interleaving.',
+    text: 'concurrency and data consistency: races between overlapping requests (check-then-act, read-modify-write without a row lock or transaction), retries that are not idempotent, multi-step writes that can half-complete, two sources of truth for one value (for example a total stored separately from the items it was computed from), totals or status computed from stale state, client state trusted over server state, and caches that can serve a stale value after a write. For each, name the exact interleaving.',
   },
   {
     key: 'latency',
@@ -123,7 +123,7 @@ if (a.inProgress && a.inProgress.mergeBase && String(a.inProgress.stat || '').tr
 
 ${CONTEXT}
 
-Diff to review: run \`git -C ${a.repoRoot} diff ${a.inProgress.mergeBase}..HEAD\`. Review only flaws the change introduces or touches: injection, authn/authz gaps, IDOR, secrets, unsafe deserialization, SSRF, race conditions in access or money decisions, sensitive data in logs or responses. Use category "security" (or "bug" for non-security defects you notice). Quote the changed lines as evidence.${FENCE}`, { label: 'security-review:diff', phase: 'Find', schema: FINDINGS })
+Diff to review: run \`git -C ${a.repoRoot} diff ${a.inProgress.mergeBase}..HEAD\`. Review only flaws the change introduces or touches: injection, authn/authz gaps, IDOR, secrets, unsafe deserialization, SSRF, race conditions in access or state-changing decisions, sensitive data in logs or responses. Use category "security" (or "bug" for non-security defects you notice). Quote the changed lines as evidence.${FENCE}`, { label: 'security-review:diff', phase: 'Find', schema: FINDINGS })
     .then(r => r && { module: '(in-progress diff)', lens: 'security-review', ...r, findings: r.findings.map(f => ({ ...f, source: 'tier2:security-review' })) }))
 }
 

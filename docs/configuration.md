@@ -71,7 +71,7 @@ Checks always run one at a time, never in parallel.
 ### Scope globs
 
 - `**` matches any number of directories, `*` matches within one path segment, `?` one character.
-- A pattern ending in `/` is a prefix match: `backend/src/payments/` covers everything under it.
+- A pattern ending in `/` is a prefix match: `backend/src/api/` covers everything under it.
 - Paths are matched against the repo-relative paths of the files a fix changed.
 
 ## Validation errors

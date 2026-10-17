@@ -60,7 +60,7 @@ phase used is declared in `meta.phases`.
    - `logic`: wrong conditions, off-by-one, units and rounding, null paths, swallowed errors, wrong
      status transitions, missing boundary validation, missing data coerced to 0.
    - `consistency`: races between overlapping requests, non-idempotent retries, half-complete
-     multi-step writes, two sources of truth for one value, money or status from stale state, client
+     multi-step writes, two sources of truth for one value, totals or status from stale state, client
      state trusted over server state, stale caches. Each must name the exact interleaving.
    - `latency`: N+1 queries, sequential independent awaits, unbounded loops or result sets, blocking
      I/O on a request path, network calls inside a transaction, missing indexes or caching.
