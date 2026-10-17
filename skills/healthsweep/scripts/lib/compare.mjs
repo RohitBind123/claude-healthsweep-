@@ -25,10 +25,16 @@ function compareCheck(before, after, opts) {
     flag(`failed rose ${before.failed} -> ${after.failed}`);
   }
 
-  if (before.kind === 'bench' && before.metricMs != null && after.metricMs != null) {
-    base.deltaPct = Math.round(((after.metricMs - before.metricMs) / before.metricMs) * 1000) / 10;
-    if (base.deltaPct > opts.benchTolerancePct) flag(`bench slower by ${base.deltaPct}%`);
+  if (before.kind === 'bench' && before.metricMs != null) {
+    if (after.metricMs == null) flag('bench metric missing in the after run');
+    else if (before.metricMs > 0) {
+      base.deltaPct = Math.round(((after.metricMs - before.metricMs) / before.metricMs) * 1000) / 10;
+      if (base.deltaPct > opts.benchTolerancePct) flag(`bench slower by ${base.deltaPct}%`);
+    } else base.deltaPct = null;
   }
+  // Failing (or timing out) both times with nothing parseable: we cannot tell better from worse.
+  const opaque = (c) => c.timedOut || (c.exitCode !== 0 && c.passed == null && c.failed == null && !(c.failures ?? []).length);
+  base.unknown = !base.regressed && opaque(before) && opaque(after);
   return base;
 }
 
@@ -42,5 +48,5 @@ export function compareRuns(before, after, opts = {}) {
     if (!a) { missing.push(b.name); continue; }
     checks.push(compareCheck(b, a, o));
   }
-  return { regressed: checks.some((c) => c.regressed), checks, missing };
+  return { regressed: checks.some((c) => c.regressed) || missing.length > 0, checks, missing, unknown: checks.filter((c) => c.unknown).map((c) => c.name) };
 }

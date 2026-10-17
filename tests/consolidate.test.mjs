@@ -100,3 +100,26 @@ test('normalizeFinding redacts secrets in evidence, rationale and title', () => 
   const n = normalizeFinding(f({ title: 'key AKIAIOSFODNN7EXAMPLE committed', evidence: 'const k = "AKIAIOSFODNN7EXAMPLE";', rationale: 'password = hunter2hunter2' }));
   for (const v of [n.title, n.evidence, n.rationale]) assert.ok(!/AKIAIOSFODNN7EXAMPLE|hunter2hunter2/.test(v), v);
 });
+
+test('different problems close together stay separate when their titles differ', () => {
+  const out = consolidate([
+    f({ line: 10, title: 'Missing row lock on price update' }),
+    f({ line: 12, title: 'Swallowed error hides gateway timeout' }),
+  ]);
+  assert.equal(out.length, 2);
+});
+
+test('similar titles close together still merge', () => {
+  const out = consolidate([f({ line: 10, title: 'Missing row lock on price update' }), f({ line: 11, title: 'price update missing row lock' })]);
+  assert.equal(out.length, 1);
+});
+
+test('findings without a usable line never merge by proximity', () => {
+  const out = consolidate([f({ line: 0, title: 'Missing lock' }), f({ line: 2, title: 'Missing lock' })]);
+  assert.equal(out.length, 2);
+});
+
+test('two findings with different external ids are never merged', () => {
+  const out = consolidate([f({ externalId: 'a' }), f({ externalId: 'b', line: 11 })]);
+  assert.equal(out.length, 2);
+});

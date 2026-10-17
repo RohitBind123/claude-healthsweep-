@@ -29,18 +29,25 @@ const SKILL_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const GROUND_TRUTH_CANDIDATES = ['PLAN.md', 'SPEC.md', 'README.md', 'CLAUDE.md', 'AGENTS.md', 'docs/'];
 
+// Flags that always take a value; --flag=value and a bare -- (end of options) are supported.
+const STRING_FLAGS = ['repo', 'config', 'run', 'label', 'files', 'ids', 'entry', 'tier1', 'tier2', 'tier3', 'threshold', 'stamp', 'base', 'modules', 'vars', 'schema', 'before', 'after', 'concurrency', 'tier3-reason', 'tier2-total'];
+
 function parseArgs(argv) {
   const [command, ...rest] = argv;
   const flags = { _: [] };
   for (let i = 0; i < rest.length; i += 1) {
     const a = rest[i];
+    if (a === '--') { flags._.push(...rest.slice(i + 1)); break; }
     if (a.startsWith('--')) {
+      const eq = a.indexOf('=');
+      if (eq !== -1) { flags[a.slice(2, eq)] = a.slice(eq + 1); continue; }
       const key = a.slice(2);
       const next = rest[i + 1];
       if (next === undefined || next.startsWith('--')) flags[key] = true;
       else { flags[key] = next; i += 1; }
     } else flags._.push(a);
   }
+  for (const k of STRING_FLAGS) if (flags[k] === true) throw new Error(`--${k} needs a value`);
   return { command, flags };
 }
 
@@ -185,10 +192,6 @@ function cmdCompare(f) {
   return out({ ok: !res.regressed, ...res });
 }
 
-function readTier3(path) {
-  return readFileSync(path, 'utf8').split('\n').filter((l) => l.trim()).map((l) => fromClaudeSecurity(JSON.parse(l)));
-}
-
 function cmdConsolidate(f) {
   const run = loadRun(f.run);
   const raw = [];
@@ -197,10 +200,15 @@ function cmdConsolidate(f) {
   if (f.tier2) (readJson(f.tier2).findings ?? []).forEach(add);
   if (f.tier1) (readJson(f.tier1).findings ?? []).forEach(add);
   if (f.tier3) {
-    const p = existsSync(f.tier3) && !f.tier3.endsWith('.jsonl')
-      ? join(f.tier3, readdirSync(f.tier3).find((n) => n.endsWith('.jsonl')))
-      : f.tier3;
-    readTier3(p).forEach(add);
+    let p = f.tier3;
+    if (existsSync(p) && !p.endsWith('.jsonl')) {
+      const name = readdirSync(p).find((n) => n.endsWith('.jsonl'));
+      if (!name) throw new Error(`no .jsonl results file in ${p}`);
+      p = join(p, name);
+    }
+    readFileSync(p, 'utf8').split('\n').filter((l) => l.trim()).forEach((line) => {
+      try { raw.push(fromClaudeSecurity(JSON.parse(line))); } catch (e) { rejected.push({ item: line.slice(0, 200), reason: e.message }); }
+    });
   }
   const findings = consolidate(raw);
   const threshold = f.threshold ?? run.config.costGate.threshold;
@@ -328,7 +336,9 @@ const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, co
 
 async function main() {
   process.umask(0o077); // run artefacts (logs, findings, prompts) are private to the user
-  const { command, flags } = parseArgs(process.argv.slice(2));
+  let parsed;
+  try { parsed = parseArgs(process.argv.slice(2)); } catch (e) { out({ ok: false, error: e.message }); process.exit(1); }
+  const { command, flags } = parsed;
   const fn = COMMANDS[command];
   if (!fn) {
     err(`usage: healthsweep.mjs <${Object.keys(COMMANDS).join('|')}> [--flags]`);

@@ -55,7 +55,7 @@ test('full happy path: preflight, baseline, consolidate, scoped checks, compare,
   const tier2 = join(runDir, 'tier2.json');
   writeFileSync(tier2, JSON.stringify({ findings: [
     { file: 'src/a.js', line: 3, category: 'bug', severity: 'HIGH', title: 'off by one', evidence: 'i <= n', source: 'tier2:bugs' },
-    { file: 'src/a.js', line: 4, category: 'bug', severity: 'LOW', title: 'dup', evidence: 'i <= n', source: 'tier2:logic' },
+    { file: 'src/a.js', line: 4, category: 'bug', severity: 'LOW', title: 'loop is off by one', evidence: 'i <= n', source: 'tier2:logic' },
     { file: 'src/b.js', line: 9, category: 'latency', severity: 'LOW', title: 'loop', evidence: 'for..await', source: 'tier2:perf' },
     { file: 'src/c.js', line: 1, category: 'bug', severity: 'HIGH', title: 'no evidence', evidence: '' },
   ] }));
@@ -230,4 +230,36 @@ test('checks report files a check command modified in the repository', () => {
   const runDir = run('preflight', '--repo', repo, '--stamp', 'dirt').json.runDir;
   const c = run('checks', '--run', runDir);
   assert.deepEqual(c.json.dirtiedByChecks, ['README.md']);
+});
+
+test('flags accept --key=value and refuse a missing value', () => {
+  const { repo, run } = setup();
+  const pre = run('preflight', `--repo=${repo}`, '--stamp=eq');
+  assert.equal(pre.json.ok, true);
+  const runDir = pre.json.runDir;
+  const c = run('checks', '--run', runDir, '--label');
+  assert.equal(c.json.ok, false);
+  assert.match(c.json.error, /--label needs a value/);
+});
+
+test('one bad tier-3 line is rejected without losing the rest', () => {
+  const { repo, run, root } = setup();
+  const runDir = run('preflight', '--repo', repo, '--stamp', 't3').json.runDir;
+  run('checks', '--run', runDir);
+  const t3 = join(root, 'cs');
+  mkdirSync(t3);
+  writeFileSync(join(t3, 'CLAUDE-SECURITY-RESULTS.jsonl'), [
+    JSON.stringify({ file: 'src/a.js', line: 3, severity: 'HIGH', title: 'sqli', evidence: 'q()' }),
+    '{not json',
+    JSON.stringify({ file: '/etc/passwd', line: 1, severity: 'LOW', title: 'x', evidence: 'y' }),
+  ].join('\n'));
+  const c = run('consolidate', '--run', runDir, '--tier3', t3);
+  assert.equal(c.json.ok, true);
+  assert.equal(c.json.counts.total, 1);
+  assert.equal(c.json.rejected.length, 2);
+  const empty = join(root, 'empty');
+  mkdirSync(empty);
+  const e = run('consolidate', '--run', runDir, '--tier3', empty);
+  assert.equal(e.json.ok, false);
+  assert.match(e.json.error, /no \.jsonl/);
 });

@@ -64,3 +64,26 @@ test('bench check: slower than tolerance is a regression', () => {
   assert.equal(ok.regressed, false);
   assert.equal(ok.checks[0].deltaPct, 5);
 });
+
+test('a check that failed before and after with no counts is reported as unknown', () => {
+  const b = { name: 'lint', kind: 'lint', exitCode: 1, passed: null, failed: null, failures: [] };
+  const r = compareRuns(run([b]), run([{ ...b }]));
+  assert.equal(r.regressed, false);
+  assert.deepEqual(r.unknown, ['lint']);
+});
+
+test('a check that timed out both times is unknown, not green', () => {
+  const b = { name: 'e2e', kind: 'test', exitCode: null, timedOut: true, passed: null, failed: null, failures: [] };
+  assert.deepEqual(compareRuns(run([b]), run([{ ...b }])).unknown, ['e2e']);
+});
+
+test('a bench that loses its metric regresses; a zero baseline does not divide by zero', () => {
+  const b = { name: 'bench', kind: 'bench', exitCode: 0, metricMs: 100, failures: [] };
+  assert.equal(compareRuns(run([b]), run([{ ...b, metricMs: null }])).regressed, true);
+  const z = compareRuns(run([{ ...b, metricMs: 0 }]), run([{ ...b, metricMs: 5 }]));
+  assert.ok(Number.isFinite(z.checks[0].deltaPct) || z.checks[0].deltaPct === null);
+});
+
+test('a missing check counts as a regression', () => {
+  assert.equal(compareRuns(run([chk('unit'), chk('lint', { kind: 'lint' })]), run([chk('unit')])).regressed, true);
+});

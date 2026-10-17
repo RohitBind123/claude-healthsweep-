@@ -51,8 +51,26 @@ export function fromClaudeSecurity(rec) {
   });
 }
 
-function sameIssue(a, b) {
-  return a.file === b.file && a.category === b.category && Math.abs(a.line - b.line) <= LINE_WINDOW;
+const STOP = new Set(['the', 'and', 'for', 'with', 'not', 'can', 'are', 'was', 'from', 'that', 'this', 'into', 'when', 'its', 'has', 'have', 'but', 'any']);
+function words(title) {
+  return new Set(String(title).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP.has(w)));
+}
+function similarTitles(a, b) {
+  const A = words(a); const B = words(b);
+  if (!A.size || !B.size) return true;
+  let inter = 0;
+  for (const w of A) if (B.has(w)) inter += 1;
+  return inter / (A.size + B.size - inter) >= 0.34;
+}
+
+// Same file and category, a usable line within 3 of any member, and either the same CWE or
+// similar titles. Two findings with different external ids are different findings.
+function sameIssue(cluster, b) {
+  if (cluster.file !== b.file || cluster.category !== b.category || b.line <= 0) return false;
+  if (cluster.externalId && b.externalId && cluster.externalId !== b.externalId) return false;
+  if (!cluster._lines.some((l) => l > 0 && Math.abs(l - b.line) <= LINE_WINDOW)) return false;
+  if (cluster.cwe && b.cwe && cluster.cwe === b.cwe) return true;
+  return cluster._titles.some((t) => similarTitles(t, b.title));
 }
 
 function merge(a, b) {
@@ -61,6 +79,8 @@ function merge(a, b) {
   return {
     ...keep,
     sources: [...new Set([...(a.sources ?? [a.source]), ...(b.sources ?? [b.source])])],
+    _lines: [...(a._lines ?? [a.line]), b.line],
+    _titles: [...(a._titles ?? [a.title]), b.title],
     evidence: keep.evidence.includes(other.evidence) ? keep.evidence : `${keep.evidence}\n---\n${other.evidence}`,
     cwe: keep.cwe ?? other.cwe,
     externalId: keep.externalId ?? other.externalId,
@@ -72,13 +92,13 @@ export function consolidate(rawFindings) {
   for (const raw of rawFindings) {
     const n = { ...normalizeFinding(raw) };
     const idx = merged.findIndex((m) => sameIssue(m, n));
-    if (idx === -1) merged.push({ ...n, sources: [n.source] });
+    if (idx === -1) merged.push({ ...n, sources: [n.source], _lines: [n.line], _titles: [n.title] });
     else merged[idx] = merge(merged[idx], n);
   }
   const sorted = [...merged].sort((a, b) =>
     RANK[a.severity] - RANK[b.severity] || a.file.localeCompare(b.file) || a.line - b.line);
   return sorted.map((m, i) => {
-    const { source, ...rest } = m;
+    const { source, _lines, _titles, ...rest } = m;
     return { id: `HS-${String(i + 1).padStart(3, '0')}`, ...rest };
   });
 }
