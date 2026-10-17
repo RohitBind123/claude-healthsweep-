@@ -46,7 +46,11 @@ export function runCheck(check, { repoRoot, outDir, label = '' }) {
 
     child.on('close', (code) => {
       clearTimeout(timer);
-      log.end();
+      // resolve only after the log file is flushed, so callers can read it at once
+      log.end(() => finish(code));
+    });
+
+    function finish(code) {
       const parsed = parseTestOutput(output);
       let metricMs = null;
       if (check.kind === 'bench' && check.metricRegex) {
@@ -58,7 +62,7 @@ export function runCheck(check, { repoRoot, outDir, label = '' }) {
         exitCode: timedOut ? null : code, timedOut, startedAt, durationMs: Date.now() - startedAt,
         ...parsed, metricMs, logFile, tail: output.slice(-TAIL_CHARS),
       });
-    });
+    }
   });
 }
 
