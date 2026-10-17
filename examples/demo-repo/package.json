@@ -1,0 +1,10 @@
+{
+  "name": "healthsweep-demo-jobs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Toy job queue used by the healthsweep demo.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

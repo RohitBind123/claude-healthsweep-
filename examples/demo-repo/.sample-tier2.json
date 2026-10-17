@@ -1,0 +1,37 @@
+{
+  "findings": [
+    {
+      "file": "src/jobs/claim.js",
+      "line": 4,
+      "category": "bug",
+      "severity": "HIGH",
+      "title": "Two workers can claim the same job (read-then-update race)",
+      "evidence": "const job = await store.findOldestPending();\nconst claimed = await store.update(job.id, {\n    status: 'claimed',",
+      "rationale": "The pending row is read, then updated in a separate await with no condition on status. Two concurrent claimNext calls both read job 'a' before either writes, so both return it. README says each job must be claimed by exactly one worker.",
+      "confidence": "HIGH",
+      "source": "tier2:consistency"
+    },
+    {
+      "file": "src/jobs/claim.js",
+      "line": 7,
+      "category": "bug",
+      "severity": "MEDIUM",
+      "title": "update() does not check the job is still pending",
+      "evidence": "const claimed = await store.update(job.id, {",
+      "rationale": "The write overwrites claimedBy unconditionally; a job claimed by another worker in the meantime is silently re-assigned.",
+      "confidence": "MEDIUM",
+      "source": "tier2:logic"
+    },
+    {
+      "file": "src/jobs/claim.js",
+      "line": 17,
+      "category": "latency",
+      "severity": "LOW",
+      "title": "listClaimedBy fetches jobs one at a time",
+      "evidence": "for (const id of ids) {\n    const job = await store.get(id);",
+      "rationale": "Sequential awaits inside the loop: N round-trips for N ids. A batch read or Promise.all would cut wall time. No benchmark exists, so any speed-up is an unverified hypothesis.",
+      "confidence": "MEDIUM",
+      "source": "tier2:latency"
+    }
+  ]
+}

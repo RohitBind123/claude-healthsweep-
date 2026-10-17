@@ -1,0 +1,14 @@
+{
+  "groundTruth": ["README.md"],
+  "checks": [
+    {
+      "name": "unit",
+      "kind": "test",
+      "cmd": "npm test",
+      "timeoutSec": 60,
+      "scope": ["src/**"]
+    }
+  ],
+  "costGate": { "threshold": "MEDIUM" },
+  "tier3": { "enabled": false }
+}
