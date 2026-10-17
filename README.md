@@ -6,7 +6,9 @@
   <img alt="healthsweep: Audit. Verify independently. Fix only what you approve." src="assets/banner-light.svg" width="100%">
 </picture>
 
-<p><strong>A Claude Code plugin that audits a codebase for bugs, security holes and latency problems, has every finding re-checked by an independent agent, and applies only the fixes you approve, each with an evidence log entry.</strong></p>
+<p><strong>An agent skill that audits a codebase for bugs, security holes and latency problems, has every finding re-checked by an independent agent, and applies only the fixes you approve, each with an evidence log entry.</strong></p>
+
+<p>Works with <b>Claude Code</b> · <b>Codex CLI</b> · <b>Cursor</b> · <b>Gemini CLI</b> · <b>GitHub Copilot</b> · <b>OpenCode</b> · any agent that reads <a href="https://agentskills.io">Agent Skills</a></p>
 
 <p>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/github/license/RohitBind123/claude-healthsweep-"></a>
@@ -14,14 +16,15 @@
   <a href="https://github.com/RohitBind123/claude-healthsweep-/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/RohitBind123/claude-healthsweep-/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/RohitBind123/claude-healthsweep-/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/RohitBind123/claude-healthsweep-?style=flat"></a>
   <a href="https://docs.claude.com/en/docs/claude-code/plugins"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-D97757"></a>
+  <a href="https://agentskills.io"><img alt="Agent Skills" src="https://img.shields.io/badge/Agent%20Skills-compatible-4B5563"></a>
+  <a href="package.json"><img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-0-2EA44F"></a>
 </p>
 
 </div>
 
-<!-- TODO: record assets/demo.gif with `vhs assets/demo.tape`, then uncomment the line below. -->
-<!-- <p align="center"><img alt="healthsweep demo" src="assets/demo.gif" width="800"></p> -->
+<p align="center"><img alt="healthsweep demo: preflight stop, baseline, consolidate, verifier prompt, report" src="assets/demo.gif" width="800"></p>
 
-> Demo: `assets/demo.gif` (coming soon; the recording script is [`assets/demo.tape`](assets/demo.tape)).
+<p align="center"><em>The demo runs the deterministic engine on a toy repo; the finder output is sample data, in a real run agents produce it.</em></p>
 
 ## Why
 
@@ -34,7 +37,7 @@ anyone drafts a fix.
 
 ## Quickstart
 
-In Claude Code:
+### Claude Code (full experience: workflows + Tier 3)
 
 ```text
 /plugin marketplace add RohitBind123/claude-healthsweep-
@@ -42,34 +45,48 @@ In Claude Code:
 ```
 
 Restart Claude Code (`claude --resume` keeps your conversation) so the skill and workflows load. In
-testing, `/reload-plugins` did not always pick up a plugin installed mid-session. Then, from a clean
-git working tree:
+testing, `/reload-plugins` did not always pick up a plugin installed mid-session.
+
+### Codex, Cursor, Gemini CLI, GitHub Copilot, OpenCode
+
+```bash
+npx github:RohitBind123/claude-healthsweep- install --agent codex   # or cursor, gemini, copilot, opencode
+npx github:RohitBind123/claude-healthsweep- install --all           # every agent at once
+```
+
+This copies the self-contained skill folder to where your agent looks (`~/.agents/skills`,
+`~/.cursor/skills`, `~/.gemini/skills`, ...). Restart the agent, then ask it to run healthsweep, or
+type `/healthsweep` where slash skills are supported. Details: [docs/agents.md](docs/agents.md).
+
+### Run it
+
+From a clean git working tree:
 
 ```text
 /healthsweep
-```
-
-Common options:
-
-```text
 /healthsweep --scope src/api,src/core --threshold HIGH
 /healthsweep --base main            # also security-review the branch diff against main
 /healthsweep --no-tier3             # skip the Claude Security plugin scan
 /healthsweep --config path/to/healthsweep.json
 ```
 
-Requirements:
+### Three ways to fan out
 
-- Dynamic workflows must be enabled. On Pro, turn on "Dynamic workflows" in `/config`. Without the
-  Workflow tool the skill stops; it does not fall back to a hand-run sweep.
-- Node.js 20 or newer on your `PATH` (the deterministic steps are a zero-dependency Node CLI).
-- Optional: the Claude Security plugin for Tier 3
-  (`/plugin install claude-security@claude-plugins-official`).
+| Mode | Where | How the work fans out | Independent verification |
+|---|---|---|---|
+| A | Claude Code with the plugin | dynamic workflows | yes |
+| B | any agent with an agent CLI on `PATH` (`claude`, `codex`, `agent`, `gemini`, `copilot`, `opencode`) | one fresh headless agent process per task | yes |
+| C | anything else | the agent runs each finder prompt itself | no, so the run ends report-only |
+
+Requirements: Node.js 20+ and git. In Claude Code, dynamic workflows must be enabled (on Pro: turn on
+"Dynamic workflows" in `/config`). Optional: the Claude Security plugin for Tier 3
+(`/plugin install claude-security@claude-plugins-official`).
 
 ## How it works
 
-The `/healthsweep` skill runs in your session and holds every human gate. The two workflows do the
-expensive fan-out in the background and never change your files.
+The skill runs in your session and holds every human gate. The fan-out (workflows in Claude Code,
+headless agent processes elsewhere) does the expensive work and never changes your files. Every mode
+uses the same prompts, schemas and rules from `skills/healthsweep/`.
 
 ```mermaid
 flowchart TD
