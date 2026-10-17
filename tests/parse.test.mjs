@@ -22,6 +22,11 @@ test('jest repeats failure headers in its summary; names are listed once', () =>
   assert.deepEqual(parseTestOutput(out).failures, ['a › b']);
 });
 
+test('jest summary copies with mangled emoji (U+FFFD) collapse onto the real name', () => {
+  const out = '  ● s › 🔴 refuses x\n\n  ● s › �� refuses x\n\nTests:       1 failed, 1 total\n';
+  assert.deepEqual(parseTestOutput(out).failures, ['s › refuses x']);
+});
+
 test('jest all passing', () => {
   const r = parseTestOutput('Tests:       12 passed, 12 total\n');
   assert.equal(r.passed, 12);

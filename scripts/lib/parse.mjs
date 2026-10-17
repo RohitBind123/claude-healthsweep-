@@ -8,9 +8,15 @@ function num(re, text) {
   return m ? Number(m[1]) : null;
 }
 
+// Test names are compared across runs, so they are normalised: emoji and the U+FFFD
+// that some runners print in place of a split emoji are dropped, spaces collapsed.
+function normName(name) {
+  return name.replace(/[�️]|\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim();
+}
+
 function collect(re, text) {
   const out = new Set();
-  for (const m of text.matchAll(re)) out.add(m[1].trim());
+  for (const m of text.matchAll(re)) out.add(normName(m[1]));
   return [...out];
 }
 
