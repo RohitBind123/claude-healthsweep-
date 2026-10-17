@@ -118,7 +118,7 @@ const tasks = cells.map(({ m, l }) => () =>
   agent(finderPrompt(m, l), { label: `find:${m.name}:${l.key}`, phase: 'Find', schema: FINDINGS })
     .then(r => r && { module: m.name, lens: l.key, ...r, findings: r.findings.map(f => ({ ...f, source: `tier2:${l.key}` })) }))
 
-if (a.inProgress && a.inProgress.mergeBase) {
+if (a.inProgress && a.inProgress.mergeBase && String(a.inProgress.stat || '').trim()) {
   tasks.push(() => agent(`Security review of the changes on this branch (the same job as Claude Code's /security-review, run here so it lands in one findings list).
 
 ${CONTEXT}
