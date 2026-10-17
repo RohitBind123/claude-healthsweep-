@@ -104,7 +104,7 @@ Steps (follow in order):
 ${f.category === 'latency' ? (a.benchChecks && a.benchChecks.length
     ? `7. Run the benchmark before and after: ${JSON.stringify(a.benchChecks)}. Report the real numbers.`
     : '7. There is no benchmark. Do not claim any speed-up; say "unmeasured" in notes.') : ''}
-8. Capture \`git -C ${wt} diff\` (include new files: run \`git -C ${wt} add -N .\` first) as diff.
+8. Capture the diff of ONLY the files you changed or created: \`git -C ${wt} add -N -- <your new files>\` then \`git -C ${wt} diff -- <every file you changed or created>\`. Never include anything the setup step created (symlinks, dependency folders, build output).
 9. Remove the worktree: git -C ${a.repoRoot} worktree remove --force ${wt}
 
 If the safe fix needs a product decision, return status not-fixable-safely with the options in notes. Never paste fabricated output: if a command could not run, say so. ${UNTRUSTED}`
