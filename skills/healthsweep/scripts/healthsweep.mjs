@@ -17,6 +17,8 @@ import { renderLogEntry, LOG_HEADER } from './lib/logentry.mjs';
 import { renderReport } from './lib/report.mjs';
 import { loadPrompts, loadSchemas } from './lib/prompts.mjs';
 import { renderPrompt } from './lib/shared.mjs';
+import { AGENT_PRESETS, resolveAgent } from './lib/agents.mjs';
+import { scanFanout, verifyFanout } from './lib/fanout.mjs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -198,7 +200,46 @@ function cmdPrompt(f) {
   process.stdout.write(schema ? `${text}\n\nReturn ONLY one JSON object matching this JSON schema:\n${JSON.stringify(schema)}\n` : `${text}\n`);
 }
 
-const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, compare: cmdCompare, consolidate: cmdConsolidate, log: cmdLog, report: cmdReport, prompt: cmdPrompt };
+function hasBin(bin) {
+  try { execFileSync('sh', ['-c', `command -v ${bin}`], { stdio: 'ignore' }); return true; } catch { return false; }
+}
+
+function cmdAgents() {
+  return out({
+    ok: true,
+    presets: Object.fromEntries(Object.entries(AGENT_PRESETS).map(([k, p]) => [k, { installed: hasBin(p.bin), command: p.command, writeCommand: p.writeCommand }])),
+  });
+}
+
+// Scan or verify through any headless coding agent (one fresh process per task).
+async function cmdFanout(f) {
+  const run = loadRun(f.run);
+  const stage = f._[0];
+  const agent = resolveAgent(f.preset ? { ...(run.config.agent ?? {}), preset: f.preset, command: undefined, writeCommand: undefined } : run.config.agent);
+  if (f.concurrency) agent.concurrency = Number(f.concurrency);
+  const prompts = loadPrompts(join(SKILL_DIR, 'prompts'));
+  const schemas = loadSchemas(join(SKILL_DIR, 'schemas'));
+  const base = { repoRoot: run.repoRoot, runDir: run.runDir, groundTruth: run.config.groundTruth, activeWork: run.config.activeWork, notes: run.config.notes };
+  if (stage === 'scan') {
+    const modules = f.modules ? readJson(f.modules) : run.config.modules;
+    const res = await scanFanout({ a: { ...base, scope: run.config.scope, exclude: run.config.exclude, inProgress: run.inProgress, modules }, prompts, schemas, agent, log: err });
+    writeFileSync(join(run.runDir, 'tier2.json'), JSON.stringify(res, null, 2));
+    return out({ ok: true, stage, file: join(run.runDir, 'tier2.json'), findings: res.findings.length, lostFinders: res.lostFinders, modules: res.modules.length });
+  }
+  if (stage === 'verify') {
+    const doc = readJson(join(run.runDir, 'findings.json'));
+    const ids = f.ids ? String(f.ids).split(',') : null;
+    const findings = ids ? doc.findings.filter((x) => ids.includes(x.id)) : aboveThreshold(doc.findings, f.threshold ?? run.config.costGate.threshold);
+    const checks = run.config.checks.filter((c) => c.kind !== 'bench').map(({ name, cmd, cwd, timeoutSec }) => ({ name, cmd, cwd, timeoutSec }));
+    const benchChecks = run.config.checks.filter((c) => c.kind === 'bench').map(({ name, cmd, cwd, timeoutSec }) => ({ name, cmd, cwd, timeoutSec }));
+    const res = await verifyFanout({ a: { ...base, startSha: run.startSha, findings, checks, benchChecks, worktreeSetup: run.config.worktreeSetup }, prompts, schemas, agent, log: err });
+    writeFileSync(join(run.runDir, 'verify.json'), JSON.stringify(res, null, 2));
+    return out({ ok: true, stage, file: join(run.runDir, 'verify.json'), verified: res.results.length, tally: res.tally, errors: res.errors });
+  }
+  throw new Error('usage: fanout <scan|verify> --run <dir> [--preset name] [--modules file] [--ids a,b | --threshold T]');
+}
+
+const COMMANDS = { init: cmdInit, preflight: cmdPreflight, checks: cmdChecks, compare: cmdCompare, consolidate: cmdConsolidate, log: cmdLog, report: cmdReport, prompt: cmdPrompt, agents: cmdAgents, fanout: cmdFanout };
 
 async function main() {
   const { command, flags } = parseArgs(process.argv.slice(2));

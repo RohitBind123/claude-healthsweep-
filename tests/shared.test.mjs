@@ -33,7 +33,11 @@ test('fixVars fills setup and bench steps', () => {
   const a = { repoRoot: '/r', runDir: '/run', startSha: 's', worktreeSetup: 'ln -s {repoRoot}/nm nm', checks: [], benchChecks: [] };
   const v = fixVars(a, { id: 'HS-1', category: 'latency', severity: 'HIGH', title: 't', file: 'f', line: 1, evidence: 'e' }, [{ reasoning: 'r' }], 'ctx');
   assert.equal(v.worktree, '/run/wt/HS-1');
-  assert.equal(v.setupCommand, ' && ln -s /r/nm nm');
+  assert.match(v.setupSteps, /worktree add --detach \/run\/wt\/HS-1 s\n2\. cd \/run\/wt\/HS-1 && ln -s \/r\/nm nm/);
+  assert.match(v.cleanupStep, /worktree remove/);
+  const ready = fixVars(a, { id: 'HS-1', category: 'bug', severity: 'HIGH', title: 't', file: 'f', line: 1, evidence: 'e' }, [], 'ctx', true);
+  assert.match(ready.setupSteps, /worktree is ready/);
+  assert.match(ready.cleanupStep, /caller removes it/);
   assert.match(v.benchStep, /no benchmark/);
 });
 

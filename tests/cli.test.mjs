@@ -130,3 +130,29 @@ test('unknown command exits 64', () => {
   const r = spawnSync('node', [CLI, 'nope'], { encoding: 'utf8' });
   assert.equal(r.status, 64);
 });
+
+test('fanout scan and verify run through a configured headless agent', () => {
+  const { repo, run, g } = setup();
+  const fake = `node ${join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fake-agent.mjs')}`;
+  mkdirSync(join(repo, 'src'));
+  writeFileSync(join(repo, 'src', 'a.js'), 'const queue = [];\nconst job = queue[0];\n');
+  const cfg = JSON.parse(readFileSync(join(repo, '.healthsweep.json'), 'utf8'));
+  writeFileSync(join(repo, '.healthsweep.json'), JSON.stringify({ ...cfg, agent: { command: fake, writeCommand: fake, concurrency: 2 } }));
+  g('add', '.');
+  g('commit', '-qm', 'src');
+  const runDir = run('preflight', '--repo', repo, '--stamp', 'fan').json.runDir;
+  run('checks', '--run', runDir, '--label', 'baseline');
+  const scan = run('fanout', 'scan', '--run', runDir);
+  assert.equal(scan.json.findings, 1);
+  run('consolidate', '--run', runDir, '--tier2', join(runDir, 'tier2.json'));
+  const ver = run('fanout', 'verify', '--run', runDir, '--threshold', 'HIGH');
+  assert.equal(ver.json.tally.propose, 1);
+  const rep = run('report', '--run', runDir);
+  assert.match(readFileSync(rep.json.report, 'utf8'), /\| propose \|/);
+});
+
+test('agents lists every preset with whether it is installed', () => {
+  const r = spawnSync('node', [CLI, 'agents'], { encoding: 'utf8' });
+  const j = JSON.parse(r.stdout);
+  for (const k of ['claude', 'codex', 'cursor', 'gemini', 'copilot', 'opencode']) assert.equal(typeof j.presets[k].installed, 'boolean');
+});

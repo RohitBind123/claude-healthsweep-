@@ -35,7 +35,7 @@ test('every real prompt renders with the variables its role supplies', () => {
   renderPrompt(p, 'inventory', { ...ctx, maxModules: 12, scope: '', exclude: '' });
   renderPrompt(p, 'security-review', { ...ctx, repoRoot: '/r', mergeBase: 'abc' });
   renderPrompt(p, 'verifier', { ...ctx, ...f, lens: p['verify-lenses/correctness'] });
-  renderPrompt(p, 'fixer', { ...ctx, ...f, repoRoot: '/r', worktree: '/w', startSha: 's', setupCommand: '', checks: '[]', benchStep: '', verification: 'v' });
+  renderPrompt(p, 'fixer', { ...ctx, ...f, repoRoot: '/r', worktree: '/w', startSha: 's', setupSteps: '1. a', cleanupStep: '9. b', checks: '[]', benchStep: '', verification: 'v' });
   renderPrompt(p, 'reviewer', { ...ctx, ...f, diff: 'd', testsBefore: 'b', testsAfter: 'a', notes: 'n' });
 });
 

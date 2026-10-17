@@ -44,16 +44,25 @@ export function isConfirmed(verdicts) {
   return verdicts.length > 0 && verdicts.every((v) => v.real === true);
 }
 
-export function fixVars(a, f, verdicts, context) {
+// worktreeReady: the caller (the CLI fan-out) already created the worktree and ran setup,
+// so the agent only works inside it. Workflow agents create and remove it themselves.
+export function fixVars(a, f, verdicts, context, worktreeReady = false) {
+  const worktree = `${a.runDir}/wt/${f.id}`;
+  const setup = a.worktreeSetup ? a.worktreeSetup.replace(/\{repoRoot\}/g, a.repoRoot) : '';
   const benchStep = f.category !== 'latency' ? '' : (a.benchChecks && a.benchChecks.length
     ? `7. Run the benchmark before and after: ${JSON.stringify(a.benchChecks)}. Report the real numbers.`
     : '7. There is no benchmark. Do not claim any speed-up; say "unmeasured" in notes.');
   return {
     ...findingVars(context, f),
     repoRoot: a.repoRoot,
-    worktree: `${a.runDir}/wt/${f.id}`,
+    worktree,
     startSha: a.startSha,
-    setupCommand: a.worktreeSetup ? ` && ${a.worktreeSetup.replace(/\{repoRoot\}/g, a.repoRoot)}` : '',
+    setupSteps: worktreeReady
+      ? `1-2. The worktree is ready at ${worktree} (at commit ${a.startSha}, setup done). Work only inside it; it is your current directory.`
+      : `1. git -C ${a.repoRoot} worktree add --detach ${worktree} ${a.startSha}\n2. cd ${worktree}${setup ? ` && ${setup}` : ''}`,
+    cleanupStep: worktreeReady
+      ? '9. Leave the worktree in place; the caller removes it.'
+      : `9. Remove the worktree: git -C ${a.repoRoot} worktree remove --force ${worktree}`,
     checks: JSON.stringify(a.checks || []),
     benchStep,
     verification: verdicts.map((v) => `- ${v.reasoning}${v.reproduction ? `\n  reproduction: ${v.reproduction}` : ''}`).join('\n'),

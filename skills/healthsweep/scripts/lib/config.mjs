@@ -51,6 +51,8 @@ export function validateConfig(raw) {
     benchTolerancePct: raw.benchTolerancePct ?? 10,
     tier3: { enabled: raw.tier3?.enabled ?? true, effort: raw.tier3?.effort ?? 'medium' },
     notes: raw.notes ?? '',
+    agent: raw.agent && typeof raw.agent === 'object' ? raw.agent : null,
+    modules: Array.isArray(raw.modules) ? raw.modules : null,
     worktreeSetup: typeof raw.worktreeSetup === 'string' && raw.worktreeSetup.trim() ? raw.worktreeSetup : null,
   };
 }
