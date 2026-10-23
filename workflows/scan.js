@@ -27,7 +27,6 @@ const PROMPTS = {
 }
 const SCHEMAS = {
   "findings": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "healthsweep findings",
     "type": "object",
     "required": [
@@ -118,7 +117,6 @@ const SCHEMAS = {
     }
   },
   "fix": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "healthsweep fix",
     "type": "object",
     "required": [
@@ -173,7 +171,6 @@ const SCHEMAS = {
     }
   },
   "inventory": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "healthsweep inventory",
     "type": "object",
     "required": [
@@ -223,7 +220,6 @@ const SCHEMAS = {
     }
   },
   "review": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "healthsweep review",
     "type": "object",
     "required": [
@@ -260,7 +256,6 @@ const SCHEMAS = {
     }
   },
   "verdict": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "healthsweep verdict",
     "type": "object",
     "required": [
