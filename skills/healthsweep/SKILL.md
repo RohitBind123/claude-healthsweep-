@@ -4,7 +4,7 @@ description: Audit a codebase for bugs, security vulnerabilities and latency pro
 license: MIT
 compatibility: Needs Node.js 20+ and git. Works in Claude Code, Codex CLI, Cursor, Gemini CLI, GitHub Copilot, OpenCode and other agents that read SKILL.md folders.
 metadata:
-  version: "0.2.1"
+  version: "0.2.2"
   argument-hint: "[path] [--scope a,b] [--base <branch>] [--threshold CRITICAL|HIGH|MEDIUM|LOW] [--no-tier3] [--config <file>]"
 allowed-tools: Read Write Glob Grep Bash AskUserQuestion Workflow
 ---

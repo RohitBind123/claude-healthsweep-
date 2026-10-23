@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-23
+
+### Fixed
+
+- The `healthsweep:scan` and `healthsweep:verify` workflows no longer fail at launch. Their
+  structured-output schemas declared `"$schema"`, which the Claude Code Workflow runtime rejects; the
+  key is removed from `skills/healthsweep/schemas/*.json` and from the generated `workflows/*.js`. A
+  test fails if any schema that reaches a workflow `agent()` call has a `$schema` key.
+
 ### Changed
 
 - The release workflow publishes to npm with Trusted Publishing (GitHub OIDC) instead of an
@@ -101,5 +110,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Token cost estimate for the verify stage, shown as a range at the cost gate.
 - `HEALTHSWEEP_LOG.md` evidence log with the real diff and real test output for every applied fix.
 
-[Unreleased]: https://github.com/RohitBind123/claude-healthsweep-/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/RohitBind123/claude-healthsweep-/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/RohitBind123/claude-healthsweep-/releases/tag/v0.2.2
 [0.1.0]: https://github.com/RohitBind123/claude-healthsweep-/releases/tag/v0.1.0
